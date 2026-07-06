@@ -3,6 +3,7 @@ import Portal from "../components/Portal";
 import ParticleBackground from "../components/ParticleBackground";
 import CursorGlow from "../components/CursorGlow";
 import Navbar from "../components/Navbar";
+import Link from "next/link";
 
 export default function Home() {
   return (
@@ -32,7 +33,11 @@ export default function Home() {
 
         <div className="mt-10 flex gap-4 justify-center">
           <button className="rounded-full bg-cyan-300 px-8 py-4 font-bold text-black shadow-[0_0_35px_#00f5ff] hover:scale-105 transition">
-            Cruzar Portal
+            <Link href="/dashboard">
+  <button className="rounded-full bg-cyan-300 px-8 py-4 font-bold text-black shadow-[0_0_35px_#00f5ff] hover:scale-105 transition">
+    Cruzar Portal
+  </button>
+</Link>
           </button>
 
           <button className="rounded-full border border-white/20 px-8 py-4 font-bold text-white hover:bg-white/10 transition">
