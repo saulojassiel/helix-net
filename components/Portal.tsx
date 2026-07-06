@@ -1,10 +1,26 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useMotionValue, useTransform } from "framer-motion";
 
 export default function Portal() {
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+
+  const rotateX = useTransform(mouseY, [-100, 100], [15, -15]);
+  const rotateY = useTransform(mouseX, [-100, 100], [-15, 15]);
+
+  function handleMouseMove(event: React.MouseEvent<HTMLDivElement>) {
+    const rect = event.currentTarget.getBoundingClientRect();
+    mouseX.set(event.clientX - rect.left - rect.width / 2);
+    mouseY.set(event.clientY - rect.top - rect.height / 2);
+  }
+
   return (
-    <div className="relative mx-auto mb-8 flex h-80 w-80 items-center justify-center">
+    <motion.div
+      onMouseMove={handleMouseMove}
+      style={{ rotateX, rotateY }}
+      className="relative mx-auto mb-8 flex h-80 w-80 items-center justify-center"
+    >
       <motion.div
         animate={{ rotate: 360 }}
         transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
@@ -24,6 +40,6 @@ export default function Portal() {
       />
 
       <div className="absolute h-24 w-24 rounded-full bg-cyan-300/20 blur-2xl" />
-    </div>
+    </motion.div>
   );
 }
