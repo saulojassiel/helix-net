@@ -1,8 +1,9 @@
 import Portal from "../components/Portal";
-
+import ParticleBackground from "../components/ParticleBackground";
 export default function Home() {
   return (
     <main className="relative min-h-screen overflow-hidden bg-black text-white flex items-center justify-center">
+      <ParticleBackground />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,#00f5ff33,transparent_35%),radial-gradient(circle_at_bottom,#7c3aed33,transparent_40%)]" />
 
       <div className="absolute h-96 w-96 rounded-full border border-cyan-400/40 shadow-[0_0_120px_#00f5ff] animate-pulse" />
