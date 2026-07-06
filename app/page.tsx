@@ -1,12 +1,17 @@
 import Nebula from "../components/Nebula";
 import Portal from "../components/Portal";
 import ParticleBackground from "../components/ParticleBackground";
+import CursorGlow from "../components/CursorGlow";
+import Navbar from "../components/Navbar";
+
 export default function Home() {
   return (
     <main className="relative min-h-screen overflow-hidden bg-black text-white flex items-center justify-center">
       <ParticleBackground />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,#00f5ff33,transparent_35%),radial-gradient(circle_at_bottom,#7c3aed33,transparent_40%)]" />
       <Nebula />
+      <CursorGlow />
+      <Navbar />
 
       <div className="absolute h-96 w-96 rounded-full border border-cyan-400/40 shadow-[0_0_120px_#00f5ff] animate-pulse" />
       <div className="absolute h-[520px] w-[520px] rounded-full border border-purple-500/20 shadow-[0_0_160px_#7c3aed]" />
