@@ -1,3 +1,4 @@
+import ResonanceCard from "../../components/ResonanceCard";
 export default function Dashboard() {
   return (
     <main className="min-h-screen bg-black text-white p-10">
@@ -14,9 +15,8 @@ export default function Dashboard() {
           <h2 className="text-2xl">🌌 Universos</h2>
         </div>
 
-        <div className="rounded-2xl border border-purple-500/30 bg-zinc-900 p-6">
-          <h2 className="text-2xl">🧠 Resonancias</h2>
-        </div>
+        <ResonanceCard />
+        
 
         <div className="rounded-2xl border border-blue-500/30 bg-zinc-900 p-6">
           <h2 className="text-2xl">🤖 IA</h2>
