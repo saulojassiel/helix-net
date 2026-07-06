@@ -1,3 +1,5 @@
+import Portal from "../components/Portal";
+
 export default function Home() {
   return (
     <main className="relative min-h-screen overflow-hidden bg-black text-white flex items-center justify-center">
@@ -7,6 +9,7 @@ export default function Home() {
       <div className="absolute h-[520px] w-[520px] rounded-full border border-purple-500/20 shadow-[0_0_160px_#7c3aed]" />
 
       <section className="relative z-10 text-center px-6">
+        <Portal />
         <p className="mb-4 text-cyan-300 tracking-[0.4em] text-sm">
           ENTER THE DIGITAL DIMENSION
         </p>
