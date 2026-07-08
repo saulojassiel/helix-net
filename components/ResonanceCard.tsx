@@ -14,12 +14,13 @@ export default function ResonanceCard() {
   const [description, setDescription] = useState("");
 
   useEffect(() => {
-    const saved = localStorage.getItem("helix-resonances");
+  const saved = localStorage.getItem("helix-resonances");
 
-    if (saved) {
-      setResonances(JSON.parse(saved));
-    }
-  }, []);
+  if (!saved) return;
+
+  const parsed = JSON.parse(saved);
+  setResonances(parsed);
+}, []);
 
   useEffect(() => {
     localStorage.setItem("helix-resonances", JSON.stringify(resonances));
