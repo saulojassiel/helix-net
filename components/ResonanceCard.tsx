@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 type Resonance = {
   title: string;
   description: string;
+  tags: string[];
 };
 
 export default function ResonanceCard() {
@@ -12,15 +13,12 @@ export default function ResonanceCard() {
   const [resonances, setResonances] = useState<Resonance[]>([]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [tags, setTags] = useState("");
 
   useEffect(() => {
-  const saved = localStorage.getItem("helix-resonances");
-
-  if (!saved) return;
-
-  const parsed = JSON.parse(saved);
-  setResonances(parsed);
-}, []);
+    const saved = localStorage.getItem("helix-resonances");
+    if (saved) setResonances(JSON.parse(saved));
+  }, []);
 
   useEffect(() => {
     localStorage.setItem("helix-resonances", JSON.stringify(resonances));
@@ -34,11 +32,13 @@ export default function ResonanceCard() {
       {
         title,
         description,
+        tags: tags.split(",").map((tag) => tag.trim()).filter(Boolean),
       },
     ]);
 
     setTitle("");
     setDescription("");
+    setTags("");
     setIsOpen(false);
   }
 
@@ -71,6 +71,13 @@ export default function ResonanceCard() {
             className="mt-3 h-24 w-full rounded-xl border border-purple-500/30 bg-black p-3 text-white outline-none"
           />
 
+          <input
+            value={tags}
+            onChange={(event) => setTags(event.target.value)}
+            placeholder="Etiquetas: música, IA, Ableton"
+            className="mt-3 w-full rounded-xl border border-purple-500/30 bg-black p-3 text-white outline-none"
+          />
+
           <button
             onClick={createResonance}
             className="mt-4 rounded-full bg-cyan-300 px-6 py-3 font-bold text-black"
@@ -82,14 +89,17 @@ export default function ResonanceCard() {
 
       <div className="mt-6 space-y-3">
         {resonances.map((resonance, index) => (
-          <div
-            key={index}
-            className="rounded-xl border border-purple-500/20 bg-black/40 p-4"
-          >
+          <div key={index} className="rounded-xl border border-purple-500/20 bg-black/40 p-4">
             <h3 className="font-bold text-purple-200">{resonance.title}</h3>
-            <p className="mt-2 text-sm text-zinc-400">
-              {resonance.description}
-            </p>
+            <p className="mt-2 text-sm text-zinc-400">{resonance.description}</p>
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              {resonance.tags?.map((tag, index) => (
+                <span key={index} className="rounded-full bg-purple-500/20 px-3 py-1 text-xs text-purple-200">
+                  #{tag}
+                </span>
+              ))}
+            </div>
           </div>
         ))}
       </div>
