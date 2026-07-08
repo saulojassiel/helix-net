@@ -17,7 +17,9 @@ export default function ResonanceCard() {
 
   useEffect(() => {
     const saved = localStorage.getItem("helix-resonances");
-    if (saved) setResonances(JSON.parse(saved));
+    if (saved) {
+      setResonances(JSON.parse(saved));
+    }
   }, []);
 
   useEffect(() => {
@@ -42,11 +44,21 @@ export default function ResonanceCard() {
     setIsOpen(false);
   }
 
+  function deleteResonance(indexToDelete: number) {
+    setResonances(
+      resonances.filter((_, index) => index !== indexToDelete)
+    );
+  }
+
   return (
     <div className="rounded-2xl border border-purple-500/30 bg-zinc-900 p-6 shadow-[0_0_30px_#7c3aed40]">
-      <h2 className="text-2xl font-bold text-purple-300">🧠 Resonancias</h2>
+      <h2 className="text-2xl font-bold text-purple-300">
+        🧠 Resonancias
+      </h2>
 
-      <p className="mt-3 text-zinc-400">Crea, conecta y expande ideas.</p>
+      <p className="mt-3 text-zinc-400">
+        Crea, conecta y expande ideas.
+      </p>
 
       <button
         onClick={() => setIsOpen(true)}
@@ -89,17 +101,38 @@ export default function ResonanceCard() {
 
       <div className="mt-6 space-y-3">
         {resonances.map((resonance, index) => (
-          <div key={index} className="rounded-xl border border-purple-500/20 bg-black/40 p-4">
-            <h3 className="font-bold text-purple-200">{resonance.title}</h3>
-            <p className="mt-2 text-sm text-zinc-400">{resonance.description}</p>
+          <div
+            key={index}
+            className="rounded-xl border border-purple-500/20 bg-black/40 p-4"
+          >
+            <h3 className="font-bold text-purple-200">
+              {resonance.title}
+            </h3>
+
+            <p className="mt-2 text-sm text-zinc-400">
+              {resonance.description}
+            </p>
+            <p className="mt-2 text-sm text-purple-300">
+  Total de Resonancias: {resonances.length}
+</p>
 
             <div className="mt-3 flex flex-wrap gap-2">
-              {resonance.tags?.map((tag, index) => (
-                <span key={index} className="rounded-full bg-purple-500/20 px-3 py-1 text-xs text-purple-200">
+              {resonance.tags?.map((tag, tagIndex) => (
+                <span
+                  key={tagIndex}
+                  className="rounded-full bg-purple-500/20 px-3 py-1 text-xs text-purple-200"
+                >
                   #{tag}
                 </span>
               ))}
             </div>
+
+            <button
+              onClick={() => deleteResonance(index)}
+              className="mt-4 rounded-full border border-red-500/30 px-4 py-2 text-sm text-red-300 transition hover:bg-red-500/10"
+            >
+              🗑 Eliminar
+            </button>
           </div>
         ))}
       </div>
