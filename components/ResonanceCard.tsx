@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { supabase } from "../lib/supabase";
 
 type Resonance = {
   title: string;
@@ -14,23 +15,58 @@ export default function ResonanceCard() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [tags, setTags] = useState("");
+  const [search, setSearch] = useState("");
 
-  function createResonance() {
+  const filteredResonances = resonances.filter((resonance) => {
+    const query = search.toLowerCase();
+
+    return (
+      resonance.title.toLowerCase().includes(query) ||
+      resonance.description.toLowerCase().includes(query) ||
+      resonance.tags.some((tag) => tag.toLowerCase().includes(query))
+    );
+  });
+
+  async function createResonance() {
     if (!title.trim()) return;
 
-    setResonances([
-      ...resonances,
-      {
-        title,
-        description,
-        tags: tags.split(",").map((tag) => tag.trim()).filter(Boolean),
-      },
-    ]);
+    console.log("Conectando con Supabase...");
+   
+   const { error } = await supabase
+  .from("resonances")
+  .insert([
+    {
+      title,
+      description,
+      tags: tags
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter(Boolean),
+    },
+  ]);
+  console.log(error);
 
-    setTitle("");
-    setDescription("");
-    setTags("");
-    setIsOpen(false);
+if (error) {
+  console.error(error);
+  return;
+}
+
+setResonances([
+  ...resonances,
+  {
+    title,
+    description,
+    tags: tags
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter(Boolean),
+  },
+]);
+
+setTitle("");
+setDescription("");
+setTags("");
+setIsOpen(false);
   }
 
   return (
@@ -39,9 +75,16 @@ export default function ResonanceCard() {
 
       <p className="mt-3 text-zinc-400">Crea, conecta y expande ideas.</p>
 
+      <input
+        value={search}
+        onChange={(event) => setSearch(event.target.value)}
+        placeholder="Buscar resonancias..."
+        className="mt-5 w-full rounded-xl border border-purple-500/30 bg-black p-3 text-white outline-none"
+      />
+
       <button
         onClick={() => setIsOpen(true)}
-        className="mt-6 rounded-full bg-purple-400 px-6 py-3 font-bold text-black"
+        className="mt-5 rounded-full bg-purple-400 px-6 py-3 font-bold text-black"
       >
         Crear Resonancia
       </button>
@@ -79,7 +122,7 @@ export default function ResonanceCard() {
       )}
 
       <div className="mt-6 space-y-3">
-        {resonances.map((resonance, index) => (
+        {filteredResonances.map((resonance, index) => (
           <div
             key={index}
             className="rounded-xl border border-purple-500/20 bg-black/40 p-4"
