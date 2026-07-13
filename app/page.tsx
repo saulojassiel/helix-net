@@ -32,13 +32,13 @@ export default function Home() {
         </p>
 
         <div className="mt-10 flex gap-4 justify-center">
-          <button className="rounded-full bg-cyan-300 px-8 py-4 font-bold text-black shadow-[0_0_35px_#00f5ff] hover:scale-105 transition">
-            <Link href="/dashboard">
-  <button className="rounded-full bg-cyan-300 px-8 py-4 font-bold text-black shadow-[0_0_35px_#00f5ff] hover:scale-105 transition">
-    Cruzar Portal
-  </button>
+         <Link
+  href="/dashboard"
+  className="rounded-full bg-cyan-300 px-8 py-4 font-bold text-black shadow-[0_0_35px_#00f5ff] transition hover:scale-105"
+>
+  Cruzar Portal
 </Link>
-          </button>
+
 
           <button className="rounded-full border border-white/20 px-8 py-4 font-bold text-white hover:bg-white/10 transition">
             Explorar
