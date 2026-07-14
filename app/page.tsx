@@ -1,8 +1,8 @@
-import Nebula from "../components/Nebula";
-import Portal from "../components/Portal";
-import ParticleBackground from "../components/ParticleBackground";
-import CursorGlow from "../components/CursorGlow";
-import Navbar from "../components/Navbar";
+import Nebula from "../components/ui/Nebula";
+import Portal from "@/components/ui/Portal";
+import ParticleBackground from "@/components/ParticleBackground";
+import CursorGlow from "@/components/ui/CursorGlow";
+import Navbar from "@/components/Navbar";
 import Link from "next/link";
 
 export default function Home() {
