@@ -1,19 +1,60 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+
+import { supabase } from "@/lib/supabase";
+import { universeService } from "@/services/UniverseService";
 
 export default function SeedExperience() {
   const [idea, setIdea] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
 
-  function handlePlantSeed() {
-    const trimmedIdea = idea.trim();
+  const router = useRouter();
 
-    if (trimmedIdea.length < 5) {
-      alert("Escribe una idea de al menos 5 caracteres.");
-      return;
+  async function handlePlantSeed() {
+    try {
+      const question = idea.trim();
+
+      if (question.length < 5) {
+        alert("Escribe una idea de al menos 5 caracteres.");
+        return;
+      }
+
+      setIsCreating(true);
+
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError) {
+        throw userError;
+      }
+
+      if (!user) {
+        alert("Debes iniciar sesión.");
+        router.push("/login");
+        return;
+      }
+
+      const universe = await universeService.plantSeed({
+        question,
+        authorId: user.id,
+      });
+
+      router.push(`/universe/${universe.id}`);
+    } catch (error) {
+      console.error(error);
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : "No se pudo crear el universo."
+      );
+    } finally {
+      setIsCreating(false);
     }
-
-    console.log("Semilla:", trimmedIdea);
   }
 
   return (
@@ -28,8 +69,7 @@ export default function SeedExperience() {
         </h1>
 
         <p className="mx-auto mt-5 max-w-2xl text-zinc-400">
-          Planta una intención. Helix la convertirá en la primera semilla de
-          un nuevo universo creativo.
+          Planta una intención y crea un nuevo universo.
         </p>
 
         <textarea
@@ -42,10 +82,10 @@ export default function SeedExperience() {
         <button
           type="button"
           onClick={handlePlantSeed}
+          disabled={!idea.trim() || isCreating}
           className="mt-6 rounded-full bg-cyan-300 px-8 py-4 font-bold text-black transition hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={!idea.trim()}
         >
-          Sembrar idea
+          {isCreating ? "Sembrando..." : "Sembrar idea"}
         </button>
       </section>
     </main>
