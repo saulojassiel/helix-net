@@ -21,6 +21,27 @@ export class UniverseService {
 
     return this.repository.plantSeed(question);
   }
+
+  async addIdea(
+    universeId: string,
+    graphId: string,
+    title: string,
+    content: string
+  ) {
+    const cleanTitle = title.trim();
+    const cleanContent = content.trim();
+
+    if (!cleanTitle) {
+      throw new Error("La idea necesita un título.");
+    }
+
+    return this.repository.addNode(
+      universeId,
+      graphId,
+      cleanTitle,
+      cleanContent
+    );
+  }
 }
 
 export const universeService = new UniverseService();

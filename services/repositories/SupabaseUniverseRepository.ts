@@ -98,4 +98,31 @@ export class SupabaseUniverseRepository
     seedNodeId: result.seed_node_id,
   };
 }
+async addNode(
+  universeId: string,
+  graphId: string,
+  title: string,
+  content: string
+) {
+  const { data, error } = await supabase.rpc("add_node", {
+    p_universe_id: universeId,
+    p_graph_id: graphId,
+    p_title: title,
+    p_content: content,
+  });
+
+  if (error) {
+    throw new Error(
+      `No se pudo crear el nodo: ${error.message}`
+    );
+  }
+
+  if (!data) {
+    throw new Error(
+      "Supabase no devolvió el identificador del nodo."
+    );
+  }
+
+  return data;
+}
 }
