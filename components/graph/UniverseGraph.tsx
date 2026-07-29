@@ -10,9 +10,12 @@ import {
   type Edge,
   type Node,
   type NodeProps,
+   type OnNodeDrag,
+   type OnConnect,
 } from "@xyflow/react";
 
 import "@xyflow/react/dist/style.css";
+
 
 type HelixNodeData = {
   label: string;
@@ -33,10 +36,11 @@ function HelixNode({ data }: NodeProps) {
           : "border-violet-500 bg-zinc-900"
       }`}
     >
-      <Handle
-        type="target"
-        position={Position.Left}
-      />
+    <Handle
+  id="target"
+  type="target"
+  position={Position.Left}
+/>
 
       <p className="text-xs uppercase tracking-widest text-zinc-400">
         {isSeed ? "SEED" : "IDEA"}
@@ -47,9 +51,10 @@ function HelixNode({ data }: NodeProps) {
       </h3>
 
       <Handle
-        type="source"
-        position={Position.Right}
-      />
+  id="source"
+  type="source"
+  position={Position.Right}
+/>
     </div>
   );
 }
@@ -61,18 +66,26 @@ const nodeTypes = {
 interface UniverseGraphProps {
   nodes: Node[];
   edges: Edge[];
+  onNodeDragStop: OnNodeDrag;
+  onConnect: OnConnect;
 }
+
 
 export default function UniverseGraph({
   nodes,
   edges,
+  onNodeDragStop,
+ onConnect,
 }: UniverseGraphProps) {
+
   return (
     <div className="h-[700px] w-full rounded-2xl border border-cyan-500/20">
       <ReactFlow
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
+        onNodeDragStop={onNodeDragStop}
+        onConnect={onConnect}
         fitView
       >
         <MiniMap />

@@ -8,11 +8,15 @@ import {
 import { useParams } from "next/navigation";
 
 import { supabase } from "@/lib/supabase";
-import { universeService } from "@/services/UniverseService";
+import { UniverseService } from "@/services/UniverseService";
+
+const universeService = new UniverseService();
 import UniverseGraph from "@/components/graph/UniverseGraph";
 import type {
+  Connection,
   Edge as FlowEdge,
   Node as FlowNode,
+  
 } from "@xyflow/react";
 
 interface Universe {
@@ -291,6 +295,34 @@ async function handleNodeDragStop(
     console.error(error);
   }
 }
+async function handleConnect(
+  connection: Connection
+) {
+  console.log("onConnect", connection);
+  if (
+    !connection.source ||
+    !connection.target
+  ) {
+    return;
+  }
+
+  try {
+    await universeService.connectIdeas(
+      params.id,
+      connection.source,
+      connection.target,
+      "inspira"
+    );
+
+    await loadWorkspace();
+  } catch (error) {
+    alert(
+      error instanceof Error
+        ? error.message
+        : "No se pudo crear la conexión."
+    );
+  }
+}
 
   if (loading) {
     return (
@@ -445,6 +477,7 @@ async function handleNodeDragStop(
   nodes={flowNodes}
   edges={flowEdges}
   onNodeDragStop={handleNodeDragStop}
+  onConnect={handleConnect}
 />
   </div>
 </section>
