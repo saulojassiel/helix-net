@@ -9,6 +9,11 @@ import { useParams } from "next/navigation";
 
 import { supabase } from "@/lib/supabase";
 import { universeService } from "@/services/UniverseService";
+import UniverseGraph from "@/components/graph/UniverseGraph";
+import type {
+  Edge as FlowEdge,
+  Node as FlowNode,
+} from "@xyflow/react";
 
 interface Universe {
   id: string;
@@ -26,7 +31,12 @@ interface Node {
   content: string;
   status: string;
 }
-
+interface Edge {
+  id: string;
+  source_node_id: string;
+  target_node_id: string;
+  type: string;
+}
 export default function UniversePage() {
   const params = useParams<{ id: string }>();
 
@@ -39,6 +49,8 @@ export default function UniversePage() {
   const [nodes, setNodes] =
     useState<Node[]>([]);
 
+const [edges, setEdges] =
+  useState<Edge[]>([]);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [sourceNodeId, setSourceNodeId] = useState("");
@@ -50,6 +62,29 @@ const [isConnecting, setIsConnecting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const flowNodes: FlowNode[] = nodes.map(
+  (node, index) => ({
+    id: node.id,
+    type: "helix",
+    position: {
+      x: (index % 3) * 280,
+      y: Math.floor(index / 3) * 180,
+    },
+    data: {
+      label: node.title,
+      status: node.status,
+    },
+  })
+);
+
+const flowEdges: FlowEdge[] = edges.map(
+  (edge) => ({
+    id: edge.id,
+    source: edge.source_node_id,
+    target: edge.target_node_id,
+    label: edge.type,
+  })
+);
 
   const loadWorkspace = useCallback(async () => {
     setErrorMessage("");
@@ -95,6 +130,20 @@ const [isConnecting, setIsConnecting] = useState(false);
           ascending: true,
         });
 
+        const { data: edgeData, error: edgeError } =
+  await supabase
+    .from("edges")
+    .select(
+      "id, source_node_id, target_node_id, type"
+    )
+    .eq("universe_id", params.id);
+
+if (edgeError) {
+  setErrorMessage(edgeError.message);
+  setLoading(false);
+  return;
+}
+
     if (nodeError) {
       setErrorMessage(nodeError.message);
       setLoading(false);
@@ -104,6 +153,7 @@ const [isConnecting, setIsConnecting] = useState(false);
     setUniverse(universeData);
     setGraph(graphData);
     setNodes(nodeData ?? []);
+    setEdges(edgeData ?? []);
     setLoading(false);
   }, [params.id]);
 
@@ -356,6 +406,19 @@ const [isConnecting, setIsConnecting] = useState(false);
       ? "Conectando..."
       : "Conectar ideas"}
   </button>
+</section>
+
+     <section className="mt-10">
+  <h2 className="text-2xl font-bold">
+    Universo visual
+  </h2>
+
+  <div className="mt-5">
+    <UniverseGraph
+      nodes={flowNodes}
+      edges={flowEdges}
+    />
+  </div>
 </section>
 
       <section className="mt-10">
