@@ -57,6 +57,8 @@ export default function UniversePage() {
 
 const [edges, setEdges] =
   useState<Edge[]>([]);
+  const [selectedNodeId, setSelectedNodeId] =
+  useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [sourceNodeId, setSourceNodeId] = useState("");
@@ -305,6 +307,22 @@ async function handleConnect(
   ) {
     return;
   }
+  if (connection.source === connection.target) {
+  alert("No puedes conectar una idea consigo misma.");
+  return;
+}
+
+const alreadyExists = edges.some(
+  (edge) =>
+    edge.source_node_id === connection.source &&
+    edge.target_node_id === connection.target &&
+    edge.type === "inspira"
+);
+
+if (alreadyExists) {
+  alert("Esta conexión ya existe.");
+  return;
+}
 
   try {
     await universeService.connectIdeas(
@@ -322,6 +340,12 @@ async function handleConnect(
         : "No se pudo crear la conexión."
     );
   }
+}
+function handleNodeClick(
+  _: unknown,
+  node: FlowNode
+) {
+  setSelectedNodeId(node.id);
 }
 
   if (loading) {
@@ -467,17 +491,55 @@ async function handleConnect(
   </button>
 </section>
 
+  {selectedNodeId && (
+  <section className="mt-10 rounded-3xl border border-cyan-500/30 bg-zinc-950 p-6">
+    <h2 className="text-2xl font-bold">
+      Nodo seleccionado
+    </h2>
+
+    {(() => {
+      const node = nodes.find(
+        (n) => n.id === selectedNodeId
+      );
+
+      if (!node) {
+        return (
+          <p className="mt-4 text-zinc-400">
+            Nodo no encontrado.
+          </p>
+        );
+      }
+
+      return (
+        <>
+          <h3 className="mt-4 text-3xl font-bold text-cyan-300">
+            {node.title}
+          </h3>
+
+          <p className="mt-4 text-zinc-300">
+            {node.content}
+          </p>
+
+          <p className="mt-6 text-sm uppercase tracking-widest text-zinc-500">
+            Tipo: {node.status}
+          </p>
+        </>
+      );
+    })()}
+  </section>
+)}   
      <section className="mt-10">
   <h2 className="text-2xl font-bold">
     Universo visual
   </h2>
 
   <div className="mt-5">
-    <UniverseGraph
+  <UniverseGraph
   nodes={flowNodes}
   edges={flowEdges}
   onNodeDragStop={handleNodeDragStop}
   onConnect={handleConnect}
+  onNodeClick={handleNodeClick}
 />
   </div>
 </section>

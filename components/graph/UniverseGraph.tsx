@@ -12,6 +12,7 @@ import {
   type NodeProps,
    type OnNodeDrag,
    type OnConnect,
+   type NodeMouseHandler,
 } from "@xyflow/react";
 
 import "@xyflow/react/dist/style.css";
@@ -68,6 +69,7 @@ interface UniverseGraphProps {
   edges: Edge[];
   onNodeDragStop: OnNodeDrag;
   onConnect: OnConnect;
+  onNodeClick: NodeMouseHandler;
 }
 
 
@@ -76,6 +78,7 @@ export default function UniverseGraph({
   edges,
   onNodeDragStop,
  onConnect,
+ onNodeClick,
 }: UniverseGraphProps) {
 
   return (
@@ -86,7 +89,9 @@ export default function UniverseGraph({
         nodeTypes={nodeTypes}
         onNodeDragStop={onNodeDragStop}
         onConnect={onConnect}
+        onNodeClick={onNodeClick}
         fitView
+        
       >
         <MiniMap />
         <Controls />
