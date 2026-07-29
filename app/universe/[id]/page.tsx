@@ -30,6 +30,8 @@ interface Node {
   title: string;
   content: string;
   status: string;
+  position_x: number;
+  position_y: number;
 }
 interface Edge {
   id: string;
@@ -67,9 +69,15 @@ const [isConnecting, setIsConnecting] = useState(false);
     id: node.id,
     type: "helix",
     position: {
-      x: (index % 3) * 280,
-      y: Math.floor(index / 3) * 180,
-    },
+  x:
+    node.position_x === 0
+      ? (index % 3) * 280
+      : node.position_x,
+  y:
+    node.position_y === 0
+      ? Math.floor(index / 3) * 180
+      : node.position_y,
+},
     data: {
       label: node.title,
       status: node.status,
@@ -79,6 +87,8 @@ const [isConnecting, setIsConnecting] = useState(false);
 
 const flowEdges: FlowEdge[] = edges.map(
   (edge) => ({
+
+
     id: edge.id,
     source: edge.source_node_id,
     target: edge.target_node_id,
@@ -124,7 +134,9 @@ const flowEdges: FlowEdge[] = edges.map(
     const { data: nodeData, error: nodeError } =
       await supabase
         .from("nodes")
-        .select("id, title, content, status")
+      .select(
+  "id, title, content, status, position_x, position_y"
+)
         .eq("universe_id", params.id)
         .order("created_at", {
           ascending: true,
@@ -264,6 +276,21 @@ if (edgeError) {
       setIsConnecting(false);
     }
   }
+
+async function handleNodeDragStop(
+  _: unknown,
+  node: FlowNode
+) {
+  try {
+    await universeService.moveNode(
+      node.id,
+      node.position.x,
+      node.position.y
+    );
+  } catch (error) {
+    console.error(error);
+  }
+}
 
   if (loading) {
     return (
@@ -415,9 +442,10 @@ if (edgeError) {
 
   <div className="mt-5">
     <UniverseGraph
-      nodes={flowNodes}
-      edges={flowEdges}
-    />
+  nodes={flowNodes}
+  edges={flowEdges}
+  onNodeDragStop={handleNodeDragStop}
+/>
   </div>
 </section>
 
