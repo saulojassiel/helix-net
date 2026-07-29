@@ -125,4 +125,31 @@ async addNode(
 
   return data;
 }
+async connectNodes(
+  universeId: string,
+  sourceNodeId: string,
+  targetNodeId: string,
+  relationType: string
+) {
+  const { data, error } = await supabase.rpc("connect_nodes", {
+    p_universe_id: universeId,
+    p_source_node_id: sourceNodeId,
+    p_target_node_id: targetNodeId,
+    p_relation_type: relationType,
+  });
+
+  if (error) {
+    throw new Error(
+      `No se pudo crear la relación: ${error.message}`
+    );
+  }
+
+  if (!data) {
+    throw new Error(
+      "Supabase no devolvió el identificador de la relación."
+    );
+  }
+
+  return data;
+}
 }

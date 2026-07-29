@@ -41,6 +41,11 @@ export default function UniversePage() {
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [sourceNodeId, setSourceNodeId] = useState("");
+const [targetNodeId, setTargetNodeId] = useState("");
+const [relationType, setRelationType] = useState("inspira");
+const [isConnecting, setIsConnecting] = useState(false);
+
 
   const [loading, setLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
@@ -114,6 +119,41 @@ export default function UniversePage() {
     if (!graph) {
       return;
     }
+    async function handleConnectIdeas() {
+  if (
+    !sourceNodeId ||
+    !targetNodeId ||
+    sourceNodeId === targetNodeId
+  ) {
+    alert("Selecciona dos ideas diferentes.");
+    return;
+  }
+
+  try {
+    setIsConnecting(true);
+
+    await universeService.connectIdeas(
+      params.id,
+      sourceNodeId,
+      targetNodeId,
+      relationType
+    );
+
+    setSourceNodeId("");
+    setTargetNodeId("");
+    setRelationType("inspira");
+
+    alert("Ideas conectadas correctamente.");
+  } catch (error) {
+    alert(
+      error instanceof Error
+        ? error.message
+        : "No se pudieron conectar las ideas."
+    );
+  } finally {
+    setIsConnecting(false);
+  }
+}
 
     try {
       setIsCreating(true);
@@ -139,6 +179,41 @@ export default function UniversePage() {
       setIsCreating(false);
     }
   }
+    async function handleConnectIdeas() {
+    if (
+      !sourceNodeId ||
+      !targetNodeId ||
+      sourceNodeId === targetNodeId
+    ) {
+      alert("Selecciona dos ideas diferentes.");
+      return;
+    }
+
+    try {
+      setIsConnecting(true);
+
+      await universeService.connectIdeas(
+        params.id,
+        sourceNodeId,
+        targetNodeId,
+        relationType
+      );
+
+      setSourceNodeId("");
+      setTargetNodeId("");
+      setRelationType("inspira");
+
+      alert("Ideas conectadas correctamente.");
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : "No se pudieron conectar las ideas."
+      );
+    } finally {
+      setIsConnecting(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -147,6 +222,7 @@ export default function UniversePage() {
       </main>
     );
   }
+    
 
   if (errorMessage || !universe || !graph) {
     return (
@@ -210,6 +286,77 @@ export default function UniversePage() {
             : "Crear idea"}
         </button>
       </section>
+      <section className="mt-10 rounded-3xl border border-violet-500/30 bg-zinc-950 p-6">
+  <h2 className="text-2xl font-bold">
+    Conectar ideas
+  </h2>
+
+  <select
+    value={sourceNodeId}
+    onChange={(event) =>
+      setSourceNodeId(event.target.value)
+    }
+    className="mt-5 w-full rounded-2xl border border-zinc-700 bg-black p-4 outline-none focus:border-violet-300"
+  >
+    <option value="">
+      Selecciona la idea de origen
+    </option>
+
+    {nodes.map((node) => (
+      <option key={node.id} value={node.id}>
+        {node.title}
+      </option>
+    ))}
+  </select>
+
+  <select
+    value={targetNodeId}
+    onChange={(event) =>
+      setTargetNodeId(event.target.value)
+    }
+    className="mt-4 w-full rounded-2xl border border-zinc-700 bg-black p-4 outline-none focus:border-violet-300"
+  >
+    <option value="">
+      Selecciona la idea de destino
+    </option>
+
+    {nodes.map((node) => (
+      <option key={node.id} value={node.id}>
+        {node.title}
+      </option>
+    ))}
+  </select>
+
+  <select
+    value={relationType}
+    onChange={(event) =>
+      setRelationType(event.target.value)
+    }
+    className="mt-4 w-full rounded-2xl border border-zinc-700 bg-black p-4 outline-none focus:border-violet-300"
+  >
+    <option value="inspira">Inspira</option>
+    <option value="causa">Causa</option>
+    <option value="depende_de">Depende de</option>
+    <option value="complementa">Complementa</option>
+    <option value="contradice">Contradice</option>
+    <option value="demuestra">Demuestra</option>
+  </select>
+
+  <button
+    type="button"
+    onClick={handleConnectIdeas}
+    disabled={
+      !sourceNodeId ||
+      !targetNodeId ||
+      isConnecting
+    }
+    className="mt-4 rounded-full bg-violet-300 px-6 py-3 font-bold text-black disabled:opacity-50"
+  >
+    {isConnecting
+      ? "Conectando..."
+      : "Conectar ideas"}
+  </button>
+</section>
 
       <section className="mt-10">
         <h2 className="text-2xl font-bold">

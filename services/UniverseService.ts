@@ -42,6 +42,19 @@ export class UniverseService {
       cleanContent
     );
   }
+  async connectIdeas(
+  universeId: string,
+  sourceNodeId: string,
+  targetNodeId: string,
+  relationType: string
+) {
+  return this.repository.connectNodes(
+    universeId,
+    sourceNodeId,
+    targetNodeId,
+    relationType
+  );
+}
 }
 
 export const universeService = new UniverseService();
