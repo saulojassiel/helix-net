@@ -348,28 +348,27 @@ function handleNodeClick(
   setSelectedNodeId(node.id);
 }
 
-  if (loading) {
-    return (
-      <main className="min-h-screen bg-black p-10 text-white">
-        Cargando universo...
-      </main>
-    );
-  }
-    
+ if (loading) {
+  return (
+    <main className="min-h-screen bg-black p-10 text-white">
+      Cargando universo...
+    </main>
+  );
+}
 
-  if (errorMessage || !universe || !graph) {
-    return (
-      <main className="min-h-screen bg-black p-10 text-white">
-        <h1 className="text-3xl font-bold">
-          No se pudo abrir el universo
-        </h1>
+if (errorMessage || !universe || !graph) {
+  return (
+    <main className="min-h-screen bg-black p-10 text-white">
+      <h1 className="text-3xl font-bold">
+        No se pudo abrir el universo
+      </h1>
 
-        <p className="mt-4 text-red-300">
-          {errorMessage}
-        </p>
-      </main>
-    );
-  }
+      <p className="mt-4 text-red-300">
+        {errorMessage}
+      </p>
+    </main>
+  );
+}
 
   return (
     <main className="min-h-screen bg-black p-10 text-white">
@@ -528,48 +527,48 @@ function handleNodeClick(
     })()}
   </section>
 )}   
-     <section className="mt-10">
-  <h2 className="text-2xl font-bold">
-    Universo visual
-  </h2>
+     <div className="mt-10 grid gap-6 xl:grid-cols-[280px_minmax(0,1fr)_360px]">
 
-  <div className="mt-5">
-  <UniverseGraph
-  nodes={flowNodes}
-  edges={flowEdges}
-  onNodeDragStop={handleNodeDragStop}
-  onConnect={handleConnect}
-  onNodeClick={handleNodeClick}
-/>
-  </div>
-</section>
+  {/* Columna izquierda */}
+  <aside className="rounded-3xl border border-cyan-500/20 bg-zinc-950 p-5">
+    <h2 className="text-xl font-bold">
+      Explorador
+    </h2>
 
-      <section className="mt-10">
-        <h2 className="text-2xl font-bold">
-          Ideas del universo
-        </h2>
+    <p className="mt-4 text-zinc-500">
+      Aquí irán las ideas.
+    </p>
+  </aside>
 
-        <div className="mt-5 grid gap-4">
-          {nodes.map((node) => (
-            <article
-              key={node.id}
-              className="rounded-2xl border border-cyan-500/20 bg-zinc-950 p-5"
-            >
-              <h3 className="text-xl font-semibold text-cyan-200">
-                {node.title}
-              </h3>
+  {/* Centro */}
+  <section>
+    <h2 className="text-2xl font-bold">
+      Universo visual
+    </h2>
 
-              <p className="mt-2 text-zinc-400">
-                {node.content}
-              </p>
+    <div className="mt-5">
+      <UniverseGraph
+        nodes={flowNodes}
+        edges={flowEdges}
+        onNodeDragStop={handleNodeDragStop}
+        onConnect={handleConnect}
+        onNodeClick={handleNodeClick}
+      />
+    </div>
+  </section>
 
-              <p className="mt-3 text-xs uppercase tracking-wider text-zinc-600">
-                {node.status}
-              </p>
-            </article>
-          ))}
-        </div>
-      </section>
-    </main>
-  );
+  {/* Derecha */}
+  <aside className="rounded-3xl border border-cyan-500/20 bg-zinc-950 p-5">
+    <h2 className="text-xl font-bold">
+      Inspector
+    </h2>
+
+    <p className="mt-4 text-zinc-500">
+      Aquí moveremos el panel del nodo.
+    </p>
+  </aside>
+
+</div>
+</main>
+);
 }
