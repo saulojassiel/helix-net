@@ -6,18 +6,22 @@ import {
   useState,
 } from "react";
 import { useParams } from "next/navigation";
-
-import { supabase } from "@/lib/supabase";
-import { UniverseService } from "@/services/UniverseService";
-
-const universeService = new UniverseService();
-import UniverseGraph from "@/components/graph/UniverseGraph";
 import type {
   Connection,
   Edge as FlowEdge,
   Node as FlowNode,
-  
+  NodeMouseHandler,
+  OnNodeDrag,
 } from "@xyflow/react";
+
+import UniverseGraph from "@/components/graph/UniverseGraph";
+import { AddIdeaPanel } from "@/components/panels/AddIdeaPanel";
+import ExplorerPanel from "@/components/panels/ExplorerPanel";
+import UniverseHeader from "@/components/universes/UniverseHeader";
+import { supabase } from "@/lib/supabase";
+import { UniverseService } from "@/services/UniverseService";
+
+const universeService = new UniverseService();
 
 interface Universe {
   id: string;
@@ -29,7 +33,7 @@ interface Graph {
   id: string;
 }
 
-interface Node {
+interface UniverseNode {
   id: string;
   title: string;
   content: string;
@@ -37,12 +41,14 @@ interface Node {
   position_x: number;
   position_y: number;
 }
-interface Edge {
+
+interface UniverseEdge {
   id: string;
   source_node_id: string;
   target_node_id: string;
   type: string;
 }
+
 export default function UniversePage() {
   const params = useParams<{ id: string }>();
 
@@ -53,64 +59,35 @@ export default function UniversePage() {
     useState<Graph | null>(null);
 
   const [nodes, setNodes] =
-    useState<Node[]>([]);
+    useState<UniverseNode[]>([]);
 
-const [edges, setEdges] =
-  useState<Edge[]>([]);
+  const [edges, setEdges] =
+    useState<UniverseEdge[]>([]);
+
   const [selectedNodeId, setSelectedNodeId] =
-  useState<string | null>(null);
+    useState<string | null>(null);
+
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [sourceNodeId, setSourceNodeId] = useState("");
-const [targetNodeId, setTargetNodeId] = useState("");
-const [relationType, setRelationType] = useState("inspira");
-const [isConnecting, setIsConnecting] = useState(false);
-
 
   const [loading, setLoading] = useState(true);
-  const [isCreating, setIsCreating] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
-  const flowNodes: FlowNode[] = nodes.map(
-  (node, index) => ({
-    id: node.id,
-    type: "helix",
-    position: {
-  x:
-    node.position_x === 0
-      ? (index % 3) * 280
-      : node.position_x,
-  y:
-    node.position_y === 0
-      ? Math.floor(index / 3) * 180
-      : node.position_y,
-},
-    data: {
-      label: node.title,
-      status: node.status,
-    },
-  })
-);
+  const [isCreating, setIsCreating] =
+    useState(false);
 
-const flowEdges: FlowEdge[] = edges.map(
-  (edge) => ({
-
-
-    id: edge.id,
-    source: edge.source_node_id,
-    target: edge.target_node_id,
-    label: edge.type,
-  })
-);
+  const [errorMessage, setErrorMessage] =
+    useState("");
 
   const loadWorkspace = useCallback(async () => {
     setErrorMessage("");
 
-    const { data: universeData, error: universeError } =
-      await supabase
-        .from("universes")
-        .select("id, title, description")
-        .eq("id", params.id)
-        .maybeSingle();
+    const {
+      data: universeData,
+      error: universeError,
+    } = await supabase
+      .from("universes")
+      .select("id, title, description")
+      .eq("id", params.id)
+      .maybeSingle();
 
     if (universeError || !universeData) {
       setErrorMessage(
@@ -121,12 +98,14 @@ const flowEdges: FlowEdge[] = edges.map(
       return;
     }
 
-    const { data: graphData, error: graphError } =
-      await supabase
-        .from("graphs")
-        .select("id")
-        .eq("universe_id", params.id)
-        .maybeSingle();
+    const {
+      data: graphData,
+      error: graphError,
+    } = await supabase
+      .from("graphs")
+      .select("id")
+      .eq("universe_id", params.id)
+      .maybeSingle();
 
     if (graphError || !graphData) {
       setErrorMessage(
@@ -137,33 +116,37 @@ const flowEdges: FlowEdge[] = edges.map(
       return;
     }
 
-    const { data: nodeData, error: nodeError } =
-      await supabase
-        .from("nodes")
+    const {
+      data: nodeData,
+      error: nodeError,
+    } = await supabase
+      .from("nodes")
       .select(
-  "id, title, content, status, position_x, position_y"
-)
-        .eq("universe_id", params.id)
-        .order("created_at", {
-          ascending: true,
-        });
-
-        const { data: edgeData, error: edgeError } =
-  await supabase
-    .from("edges")
-    .select(
-      "id, source_node_id, target_node_id, type"
-    )
-    .eq("universe_id", params.id);
-
-if (edgeError) {
-  setErrorMessage(edgeError.message);
-  setLoading(false);
-  return;
-}
+        "id, title, content, status, position_x, position_y"
+      )
+      .eq("universe_id", params.id)
+      .order("created_at", {
+        ascending: true,
+      });
 
     if (nodeError) {
       setErrorMessage(nodeError.message);
+      setLoading(false);
+      return;
+    }
+
+    const {
+      data: edgeData,
+      error: edgeError,
+    } = await supabase
+      .from("edges")
+      .select(
+        "id, source_node_id, target_node_id, type"
+      )
+      .eq("universe_id", params.id);
+
+    if (edgeError) {
+      setErrorMessage(edgeError.message);
       setLoading(false);
       return;
     }
@@ -176,52 +159,54 @@ if (edgeError) {
   }, [params.id]);
 
   useEffect(() => {
-  const timer = setTimeout(() => {
-    void loadWorkspace();
-  }, 0);
+    const timer = window.setTimeout(() => {
+      void loadWorkspace();
+    }, 0);
 
-  return () => clearTimeout(timer);
-}, [loadWorkspace]);
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [loadWorkspace]);
+
+  const flowNodes: FlowNode[] = nodes.map(
+    (node, index) => ({
+      id: node.id,
+      type: "helix",
+      position: {
+        x:
+          node.position_x === 0
+            ? (index % 3) * 280
+            : node.position_x,
+        y:
+          node.position_y === 0
+            ? Math.floor(index / 3) * 180
+            : node.position_y,
+      },
+      data: {
+        label: node.title,
+        status: node.status,
+      },
+    })
+  );
+
+  const flowEdges: FlowEdge[] = edges.map(
+    (edge) => ({
+      id: edge.id,
+      source: edge.source_node_id,
+      target: edge.target_node_id,
+      label: edge.type,
+    })
+  );
+
+  const selectedNode =
+    nodes.find(
+      (node) => node.id === selectedNodeId
+    ) ?? null;
 
   async function handleAddIdea() {
-    if (!graph) {
+    if (!graph || !title.trim()) {
       return;
     }
-    async function handleConnectIdeas() {
-  if (
-    !sourceNodeId ||
-    !targetNodeId ||
-    sourceNodeId === targetNodeId
-  ) {
-    alert("Selecciona dos ideas diferentes.");
-    return;
-  }
-
-  try {
-    setIsConnecting(true);
-
-    await universeService.connectIdeas(
-      params.id,
-      sourceNodeId,
-      targetNodeId,
-      relationType
-    );
-
-    setSourceNodeId("");
-    setTargetNodeId("");
-    setRelationType("inspira");
-
-    alert("Ideas conectadas correctamente.");
-  } catch (error) {
-    alert(
-      error instanceof Error
-        ? error.message
-        : "No se pudieron conectar las ideas."
-    );
-  } finally {
-    setIsConnecting(false);
-  }
-}
 
     try {
       setIsCreating(true);
@@ -247,106 +232,78 @@ if (edgeError) {
       setIsCreating(false);
     }
   }
-    async function handleConnectIdeas() {
-    if (
-      !sourceNodeId ||
-      !targetNodeId ||
-      sourceNodeId === targetNodeId
-    ) {
-      alert("Selecciona dos ideas diferentes.");
+
+  const handleNodeDragStop: OnNodeDrag = (
+    _,
+    node
+  ) => {
+    void universeService
+      .moveNode(
+        node.id,
+        node.position.x,
+        node.position.y
+      )
+      .catch((error: unknown) => {
+        console.error(
+          "No se pudo guardar la posición:",
+          error
+        );
+      });
+  };
+
+  async function handleConnect(
+    connection: Connection
+  ) {
+    const source = connection.source;
+    const target = connection.target;
+
+    if (!source || !target) {
+      return;
+    }
+
+    if (source === target) {
+      alert(
+        "No puedes conectar una idea consigo misma."
+      );
+      return;
+    }
+
+    const alreadyExists = edges.some(
+      (edge) =>
+        edge.source_node_id === source &&
+        edge.target_node_id === target &&
+        edge.type === "inspira"
+    );
+
+    if (alreadyExists) {
+      alert("Esta conexión ya existe.");
       return;
     }
 
     try {
-      setIsConnecting(true);
-
       await universeService.connectIdeas(
         params.id,
-        sourceNodeId,
-        targetNodeId,
-        relationType
+        source,
+        target,
+        "inspira"
       );
 
-      setSourceNodeId("");
-      setTargetNodeId("");
-      setRelationType("inspira");
-
-      alert("Ideas conectadas correctamente.");
+      await loadWorkspace();
     } catch (error) {
       alert(
         error instanceof Error
           ? error.message
-          : "No se pudieron conectar las ideas."
+          : "No se pudo crear la conexión."
       );
-    } finally {
-      setIsConnecting(false);
     }
   }
 
-async function handleNodeDragStop(
-  _: unknown,
-  node: FlowNode
-) {
-  try {
-    await universeService.moveNode(
-      node.id,
-      node.position.x,
-      node.position.y
-    );
-  } catch (error) {
-    console.error(error);
-  }
-}
-async function handleConnect(
-  connection: Connection
-) {
-  console.log("onConnect", connection);
-  if (
-    !connection.source ||
-    !connection.target
-  ) {
-    return;
-  }
-  if (connection.source === connection.target) {
-  alert("No puedes conectar una idea consigo misma.");
-  return;
-}
-
-const alreadyExists = edges.some(
-  (edge) =>
-    edge.source_node_id === connection.source &&
-    edge.target_node_id === connection.target &&
-    edge.type === "inspira"
-);
-
-if (alreadyExists) {
-  alert("Esta conexión ya existe.");
-  return;
-}
-
-  try {
-    await universeService.connectIdeas(
-      params.id,
-      connection.source,
-      connection.target,
-      "inspira"
-    );
-
-    await loadWorkspace();
-  } catch (error) {
-    alert(
-      error instanceof Error
-        ? error.message
-        : "No se pudo crear la conexión."
-    );
-  }
-}
-function handleNodeClick(
-  _: unknown,
-  node: FlowNode
-) {
-  setSelectedNodeId(node.id);
-}
+  const handleNodeClick: NodeMouseHandler = (
+    _,
+    node
+  ) => {
+    setSelectedNodeId(node.id);
+  };
 
   if (loading) {
     return (
@@ -355,7 +312,6 @@ function handleNodeClick(
       </main>
     );
   }
-    
 
   if (errorMessage || !universe || !graph) {
     return (
@@ -372,204 +328,88 @@ function handleNodeClick(
   }
 
   return (
-    <main className="min-h-screen bg-black p-10 text-white">
-      <p className="text-sm uppercase tracking-[0.35em] text-cyan-300">
-        Helix Universe
-      </p>
+    <main className="min-h-screen bg-black p-8 text-white">
+      <UniverseHeader
+        title={universe.title}
+        description={universe.description}
+      />
 
-      <h1 className="mt-6 text-4xl font-bold">
-        {universe.title}
-      </h1>
+      <div className="mt-8 grid gap-6 xl:grid-cols-[300px_minmax(0,1fr)_340px]">
+        <aside className="space-y-6">
+          <AddIdeaPanel
+            title={title}
+            content={content}
+            isCreating={isCreating}
+            onTitleChange={setTitle}
+            onContentChange={setContent}
+            onCreate={handleAddIdea}
+          />
 
-      <p className="mt-4 text-zinc-400">
-        {universe.description}
-      </p>
+          <ExplorerPanel
+            nodes={nodes}
+            selectedNodeId={selectedNodeId}
+            onSelectNode={setSelectedNodeId}
+          />
+        </aside>
 
-      <section className="mt-10 rounded-3xl border border-cyan-500/30 bg-zinc-950 p-6">
-        <h2 className="text-2xl font-bold">
-          Nueva idea
-        </h2>
+        <section className="min-w-0">
+          <h2 className="text-2xl font-bold">
+            Universo visual
+          </h2>
 
-        <input
-          value={title}
-          onChange={(event) =>
-            setTitle(event.target.value)
-          }
-          placeholder="Título de la idea"
-          className="mt-5 w-full rounded-2xl border border-zinc-700 bg-black p-4 outline-none focus:border-cyan-300"
-        />
+          <div className="mt-5">
+            <UniverseGraph
+              nodes={flowNodes}
+              edges={flowEdges}
+              onNodeDragStop={
+                handleNodeDragStop
+              }
+              onConnect={handleConnect}
+              onNodeClick={handleNodeClick}
+            />
+          </div>
+        </section>
 
-        <textarea
-          value={content}
-          onChange={(event) =>
-            setContent(event.target.value)
-          }
-          placeholder="Describe la idea..."
-          className="mt-4 min-h-32 w-full resize-none rounded-2xl border border-zinc-700 bg-black p-4 outline-none focus:border-cyan-300"
-        />
+        <aside className="rounded-3xl border border-cyan-500/20 bg-zinc-950 p-6">
+          <h2 className="text-xl font-bold">
+            Inspector
+          </h2>
 
-        <button
-          type="button"
-          onClick={handleAddIdea}
-          disabled={!title.trim() || isCreating}
-          className="mt-4 rounded-full bg-cyan-300 px-6 py-3 font-bold text-black disabled:opacity-50"
-        >
-          {isCreating
-            ? "Creando..."
-            : "Crear idea"}
-        </button>
-      </section>
-      <section className="mt-10 rounded-3xl border border-violet-500/30 bg-zinc-950 p-6">
-  <h2 className="text-2xl font-bold">
-    Conectar ideas
-  </h2>
+          {!selectedNode && (
+            <p className="mt-4 text-zinc-500">
+              Selecciona una idea del explorador
+              o del grafo.
+            </p>
+          )}
 
-  <select
-    value={sourceNodeId}
-    onChange={(event) =>
-      setSourceNodeId(event.target.value)
-    }
-    className="mt-5 w-full rounded-2xl border border-zinc-700 bg-black p-4 outline-none focus:border-violet-300"
-  >
-    <option value="">
-      Selecciona la idea de origen
-    </option>
+          {selectedNode && (
+            <>
+              <p className="mt-6 text-xs uppercase tracking-[0.25em] text-zinc-500">
+                {selectedNode.status}
+              </p>
 
-    {nodes.map((node) => (
-      <option key={node.id} value={node.id}>
-        {node.title}
-      </option>
-    ))}
-  </select>
-
-  <select
-    value={targetNodeId}
-    onChange={(event) =>
-      setTargetNodeId(event.target.value)
-    }
-    className="mt-4 w-full rounded-2xl border border-zinc-700 bg-black p-4 outline-none focus:border-violet-300"
-  >
-    <option value="">
-      Selecciona la idea de destino
-    </option>
-
-    {nodes.map((node) => (
-      <option key={node.id} value={node.id}>
-        {node.title}
-      </option>
-    ))}
-  </select>
-
-  <select
-    value={relationType}
-    onChange={(event) =>
-      setRelationType(event.target.value)
-    }
-    className="mt-4 w-full rounded-2xl border border-zinc-700 bg-black p-4 outline-none focus:border-violet-300"
-  >
-    <option value="inspira">Inspira</option>
-    <option value="causa">Causa</option>
-    <option value="depende_de">Depende de</option>
-    <option value="complementa">Complementa</option>
-    <option value="contradice">Contradice</option>
-    <option value="demuestra">Demuestra</option>
-  </select>
-
-  <button
-    type="button"
-    onClick={handleConnectIdeas}
-    disabled={
-      !sourceNodeId ||
-      !targetNodeId ||
-      isConnecting
-    }
-    className="mt-4 rounded-full bg-violet-300 px-6 py-3 font-bold text-black disabled:opacity-50"
-  >
-    {isConnecting
-      ? "Conectando..."
-      : "Conectar ideas"}
-  </button>
-</section>
-
-  {selectedNodeId && (
-  <section className="mt-10 rounded-3xl border border-cyan-500/30 bg-zinc-950 p-6">
-    <h2 className="text-2xl font-bold">
-      Nodo seleccionado
-    </h2>
-
-    {(() => {
-      const node = nodes.find(
-        (n) => n.id === selectedNodeId
-      );
-
-      if (!node) {
-        return (
-          <p className="mt-4 text-zinc-400">
-            Nodo no encontrado.
-          </p>
-        );
-      }
-
-      return (
-        <>
-          <h3 className="mt-4 text-3xl font-bold text-cyan-300">
-            {node.title}
-          </h3>
-
-          <p className="mt-4 text-zinc-300">
-            {node.content}
-          </p>
-
-          <p className="mt-6 text-sm uppercase tracking-widest text-zinc-500">
-            Tipo: {node.status}
-          </p>
-        </>
-      );
-    })()}
-  </section>
-)}   
-     <section className="mt-10">
-  <h2 className="text-2xl font-bold">
-    Universo visual
-  </h2>
-
-  <div className="mt-5">
-  <UniverseGraph
-  nodes={flowNodes}
-  edges={flowEdges}
-  onNodeDragStop={handleNodeDragStop}
-  onConnect={handleConnect}
-  onNodeClick={handleNodeClick}
-/>
-  </div>
-</section>
-
-      <section className="mt-10">
-        <h2 className="text-2xl font-bold">
-          Ideas del universo
-        </h2>
-
-        <div className="mt-5 grid gap-4">
-          {nodes.map((node) => (
-            <article
-              key={node.id}
-              className="rounded-2xl border border-cyan-500/20 bg-zinc-950 p-5"
-            >
-              <h3 className="text-xl font-semibold text-cyan-200">
-                {node.title}
+              <h3 className="mt-3 text-2xl font-bold text-cyan-300">
+                {selectedNode.title}
               </h3>
 
-              <p className="mt-2 text-zinc-400">
-                {node.content}
+              <p className="mt-4 leading-7 text-zinc-300">
+                {selectedNode.content ||
+                  "Esta idea todavía no tiene descripción."}
               </p>
 
-              <p className="mt-3 text-xs uppercase tracking-wider text-zinc-600">
-                {node.status}
-              </p>
-            </article>
-          ))}
-        </div>
-      </section>
+              <div className="mt-8 border-t border-zinc-800 pt-5">
+                <p className="text-xs uppercase tracking-widest text-zinc-600">
+                  Identificador
+                </p>
+
+                <p className="mt-2 break-all text-xs text-zinc-500">
+                  {selectedNode.id}
+                </p>
+              </div>
+            </>
+          )}
+        </aside>
+      </div>
     </main>
   );
 }
