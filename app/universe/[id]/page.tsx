@@ -14,12 +14,14 @@ import type {
   OnNodeDrag,
 } from "@xyflow/react";
 
-import UniverseGraph from "@/components/graph/UniverseGraph";
+
 import { AddIdeaPanel } from "@/components/panels/AddIdeaPanel";
 import ExplorerPanel from "@/components/panels/ExplorerPanel";
 import UniverseHeader from "@/components/universes/UniverseHeader";
 import { supabase } from "@/lib/supabase";
 import { UniverseService } from "@/services/UniverseService";
+import InspectorPanel from "@/components/panels/InspectorPanel";
+import GraphWorkspace from "@/components/graph/GraphWorkspace";
 
 const universeService = new UniverseService();
 
@@ -352,63 +354,19 @@ export default function UniversePage() {
           />
         </aside>
 
-        <section className="min-w-0">
-          <h2 className="text-2xl font-bold">
-            Universo visual
-          </h2>
+        <GraphWorkspace
+  nodes={flowNodes}
+  edges={flowEdges}
+  onNodeDragStop={handleNodeDragStop}
+  onConnect={handleConnect}
+  onNodeClick={handleNodeClick}
+/>
 
-          <div className="mt-5">
-            <UniverseGraph
-              nodes={flowNodes}
-              edges={flowEdges}
-              onNodeDragStop={
-                handleNodeDragStop
-              }
-              onConnect={handleConnect}
-              onNodeClick={handleNodeClick}
-            />
-          </div>
-        </section>
+        <InspectorPanel node={selectedNode} />
 
-        <aside className="rounded-3xl border border-cyan-500/20 bg-zinc-950 p-6">
-          <h2 className="text-xl font-bold">
-            Inspector
-          </h2>
+          
 
-          {!selectedNode && (
-            <p className="mt-4 text-zinc-500">
-              Selecciona una idea del explorador
-              o del grafo.
-            </p>
-          )}
-
-          {selectedNode && (
-            <>
-              <p className="mt-6 text-xs uppercase tracking-[0.25em] text-zinc-500">
-                {selectedNode.status}
-              </p>
-
-              <h3 className="mt-3 text-2xl font-bold text-cyan-300">
-                {selectedNode.title}
-              </h3>
-
-              <p className="mt-4 leading-7 text-zinc-300">
-                {selectedNode.content ||
-                  "Esta idea todavía no tiene descripción."}
-              </p>
-
-              <div className="mt-8 border-t border-zinc-800 pt-5">
-                <p className="text-xs uppercase tracking-widest text-zinc-600">
-                  Identificador
-                </p>
-
-                <p className="mt-2 break-all text-xs text-zinc-500">
-                  {selectedNode.id}
-                </p>
-              </div>
-            </>
-          )}
-        </aside>
+          
       </div>
     </main>
   );
