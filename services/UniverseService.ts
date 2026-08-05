@@ -21,6 +21,17 @@ export class UniverseService {
 
     return this.repository.plantSeed(question);
   }
+  async moveNode(
+  nodeId: string,
+  positionX: number,
+  positionY: number
+) {
+  return this.repository.moveNode(
+    nodeId,
+    positionX,
+    positionY
+  );
+}
 
   async addIdea(
     universeId: string,
@@ -57,4 +68,3 @@ export class UniverseService {
 }
 }
 
-export const universeService = new UniverseService();

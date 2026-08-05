@@ -73,83 +73,116 @@ export class SupabaseUniverseRepository
 
     return data ? toUniverseRecord(data) : null;
   }
+
   async plantSeed(question: string) {
-  const { data, error } = await supabase.rpc("plant_seed", {
-    p_question: question,
-  });
-
-  if (error) {
-    throw new Error(
-      `No se pudo sembrar el universo: ${error.message}`
+    const { data, error } = await supabase.rpc(
+      "plant_seed",
+      {
+        p_question: question,
+      }
     );
+
+    if (error) {
+      throw new Error(
+        `No se pudo sembrar el universo: ${error.message}`
+      );
+    }
+
+    const result = data?.[0];
+
+    if (!result) {
+      throw new Error(
+        "Supabase no devolvió los identificadores del universo."
+      );
+    }
+
+    return {
+      universeId: result.universe_id,
+      graphId: result.graph_id,
+      seedNodeId: result.seed_node_id,
+    };
   }
 
-  const result = data?.[0];
-
-  if (!result) {
-    throw new Error(
-      "Supabase no devolvió los identificadores del universo."
+  async addNode(
+    universeId: string,
+    graphId: string,
+    title: string,
+    content: string
+  ) {
+    const { data, error } = await supabase.rpc(
+      "add_node",
+      {
+        p_universe_id: universeId,
+        p_graph_id: graphId,
+        p_title: title,
+        p_content: content,
+      }
     );
+
+    if (error) {
+      throw new Error(
+        `No se pudo crear el nodo: ${error.message}`
+      );
+    }
+
+    if (!data) {
+      throw new Error(
+        "Supabase no devolvió el identificador del nodo."
+      );
+    }
+
+    return data;
   }
 
-  return {
-    universeId: result.universe_id,
-    graphId: result.graph_id,
-    seedNodeId: result.seed_node_id,
-  };
-}
-async addNode(
-  universeId: string,
-  graphId: string,
-  title: string,
-  content: string
-) {
-  const { data, error } = await supabase.rpc("add_node", {
-    p_universe_id: universeId,
-    p_graph_id: graphId,
-    p_title: title,
-    p_content: content,
-  });
-
-  if (error) {
-    throw new Error(
-      `No se pudo crear el nodo: ${error.message}`
+  async connectNodes(
+    universeId: string,
+    sourceNodeId: string,
+    targetNodeId: string,
+    relationType: string
+  ) {
+    const { data, error } = await supabase.rpc(
+      "connect_nodes",
+      {
+        p_universe_id: universeId,
+        p_source_node_id: sourceNodeId,
+        p_target_node_id: targetNodeId,
+        p_relation_type: relationType,
+      }
     );
+
+    if (error) {
+      throw new Error(
+        `No se pudo crear la relación: ${error.message}`
+      );
+    }
+
+    if (!data) {
+      throw new Error(
+        "Supabase no devolvió el identificador de la relación."
+      );
+    }
+
+    return data;
   }
 
-  if (!data) {
-    throw new Error(
-      "Supabase no devolvió el identificador del nodo."
+  async moveNode(
+    nodeId: string,
+    positionX: number,
+    positionY: number
+  ): Promise<void> {
+    const { error } = await supabase.rpc(
+      "move_node",
+      {
+        p_node_id: nodeId,
+        p_position_x: positionX,
+        p_position_y: positionY,
+      }
     );
+
+    if (error) {
+      throw new Error(
+        `No se pudo guardar la posición: ${error.message}`
+      );
+    }
   }
-
-  return data;
-}
-async connectNodes(
-  universeId: string,
-  sourceNodeId: string,
-  targetNodeId: string,
-  relationType: string
-) {
-  const { data, error } = await supabase.rpc("connect_nodes", {
-    p_universe_id: universeId,
-    p_source_node_id: sourceNodeId,
-    p_target_node_id: targetNodeId,
-    p_relation_type: relationType,
-  });
-
-  if (error) {
-    throw new Error(
-      `No se pudo crear la relación: ${error.message}`
-    );
-  }
-
-  if (!data) {
-    throw new Error(
-      "Supabase no devolvió el identificador de la relación."
-    );
-  }
-
-  return data;
-}
 }

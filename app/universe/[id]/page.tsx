@@ -1,10 +1,5 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useState,
-} from "react";
 import { useParams } from "next/navigation";
 import type {
   Connection,
@@ -14,161 +9,39 @@ import type {
   OnNodeDrag,
 } from "@xyflow/react";
 
-
+import GraphWorkspace from "@/components/graph/GraphWorkspace";
 import { AddIdeaPanel } from "@/components/panels/AddIdeaPanel";
 import ExplorerPanel from "@/components/panels/ExplorerPanel";
-import UniverseHeader from "@/components/universes/UniverseHeader";
-import { supabase } from "@/lib/supabase";
-import { UniverseService } from "@/services/UniverseService";
 import InspectorPanel from "@/components/panels/InspectorPanel";
-import GraphWorkspace from "@/components/graph/GraphWorkspace";
+import UniverseHeader from "@/components/universes/UniverseHeader";
+import { useWorkspace } from "@/hooks/useWorkspace";
+import { UniverseService } from "@/services/UniverseService";
 
 const universeService = new UniverseService();
-
-interface Universe {
-  id: string;
-  title: string;
-  description: string | null;
-}
-
-interface Graph {
-  id: string;
-}
-
-interface UniverseNode {
-  id: string;
-  title: string;
-  content: string;
-  status: string;
-  position_x: number;
-  position_y: number;
-}
-
-interface UniverseEdge {
-  id: string;
-  source_node_id: string;
-  target_node_id: string;
-  type: string;
-}
 
 export default function UniversePage() {
   const params = useParams<{ id: string }>();
 
-  const [universe, setUniverse] =
-    useState<Universe | null>(null);
+  const workspace = useWorkspace(params.id);
 
-  const [graph, setGraph] =
-    useState<Graph | null>(null);
-
-  const [nodes, setNodes] =
-    useState<UniverseNode[]>([]);
-
-  const [edges, setEdges] =
-    useState<UniverseEdge[]>([]);
-
-  const [selectedNodeId, setSelectedNodeId] =
-    useState<string | null>(null);
-
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-
-  const [loading, setLoading] = useState(true);
-  const [isCreating, setIsCreating] =
-    useState(false);
-
-  const [errorMessage, setErrorMessage] =
-    useState("");
-
-  const loadWorkspace = useCallback(async () => {
-    setErrorMessage("");
-
-    const {
-      data: universeData,
-      error: universeError,
-    } = await supabase
-      .from("universes")
-      .select("id, title, description")
-      .eq("id", params.id)
-      .maybeSingle();
-
-    if (universeError || !universeData) {
-      setErrorMessage(
-        universeError?.message ??
-          "Universo no encontrado."
-      );
-      setLoading(false);
-      return;
-    }
-
-    const {
-      data: graphData,
-      error: graphError,
-    } = await supabase
-      .from("graphs")
-      .select("id")
-      .eq("universe_id", params.id)
-      .maybeSingle();
-
-    if (graphError || !graphData) {
-      setErrorMessage(
-        graphError?.message ??
-          "Grafo no encontrado."
-      );
-      setLoading(false);
-      return;
-    }
-
-    const {
-      data: nodeData,
-      error: nodeError,
-    } = await supabase
-      .from("nodes")
-      .select(
-        "id, title, content, status, position_x, position_y"
-      )
-      .eq("universe_id", params.id)
-      .order("created_at", {
-        ascending: true,
-      });
-
-    if (nodeError) {
-      setErrorMessage(nodeError.message);
-      setLoading(false);
-      return;
-    }
-
-    const {
-      data: edgeData,
-      error: edgeError,
-    } = await supabase
-      .from("edges")
-      .select(
-        "id, source_node_id, target_node_id, type"
-      )
-      .eq("universe_id", params.id);
-
-    if (edgeError) {
-      setErrorMessage(edgeError.message);
-      setLoading(false);
-      return;
-    }
-
-    setUniverse(universeData);
-    setGraph(graphData);
-    setNodes(nodeData ?? []);
-    setEdges(edgeData ?? []);
-    setLoading(false);
-  }, [params.id]);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      void loadWorkspace();
-    }, 0);
-
-    return () => {
-      window.clearTimeout(timer);
-    };
-  }, [loadWorkspace]);
+  const {
+    universe,
+    graph,
+    nodes,
+    edges,
+    loading,
+    errorMessage,
+    loadWorkspace,
+    selectedNodeId,
+    setSelectedNodeId,
+    selectedNode,
+    title,
+    content,
+    isCreating,
+    setTitle,
+    setContent,
+    addIdea,
+  } = workspace;
 
   const flowNodes: FlowNode[] = nodes.map(
     (node, index) => ({
@@ -199,41 +72,6 @@ export default function UniversePage() {
       label: edge.type,
     })
   );
-
-  const selectedNode =
-    nodes.find(
-      (node) => node.id === selectedNodeId
-    ) ?? null;
-
-  async function handleAddIdea() {
-    if (!graph || !title.trim()) {
-      return;
-    }
-
-    try {
-      setIsCreating(true);
-
-      await universeService.addIdea(
-        params.id,
-        graph.id,
-        title,
-        content
-      );
-
-      setTitle("");
-      setContent("");
-
-      await loadWorkspace();
-    } catch (error) {
-      alert(
-        error instanceof Error
-          ? error.message
-          : "No se pudo crear la idea."
-      );
-    } finally {
-      setIsCreating(false);
-    }
-  }
 
   const handleNodeDragStop: OnNodeDrag = (
     _,
@@ -344,7 +182,7 @@ export default function UniversePage() {
             isCreating={isCreating}
             onTitleChange={setTitle}
             onContentChange={setContent}
-            onCreate={handleAddIdea}
+            onCreate={addIdea}
           />
 
           <ExplorerPanel
@@ -355,18 +193,14 @@ export default function UniversePage() {
         </aside>
 
         <GraphWorkspace
-  nodes={flowNodes}
-  edges={flowEdges}
-  onNodeDragStop={handleNodeDragStop}
-  onConnect={handleConnect}
-  onNodeClick={handleNodeClick}
-/>
+          nodes={flowNodes}
+          edges={flowEdges}
+          onNodeDragStop={handleNodeDragStop}
+          onConnect={handleConnect}
+          onNodeClick={handleNodeClick}
+        />
 
         <InspectorPanel node={selectedNode} />
-
-          
-
-          
       </div>
     </main>
   );
