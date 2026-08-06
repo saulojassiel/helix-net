@@ -1,6 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import {
+  useEffect,
+  useRef,
+} from "react";
 import {
   Background,
   Controls,
@@ -13,7 +16,7 @@ import {
   type NodeMouseHandler,
   type OnConnect,
   type OnNodeDrag,
-  type NodeProps,
+  type ReactFlowInstance,
 } from "@xyflow/react";
 
 import "@xyflow/react/dist/style.css";
@@ -21,24 +24,30 @@ import "@xyflow/react/dist/style.css";
 import { HelixNode } from "./HelixNode";
 
 interface UniverseGraphProps {
-  nodes: Node[];
-  edges: Edge[];
+  nodes?: Node[];
+  edges?: Edge[];
   onNodeDragStop: OnNodeDrag;
   onConnect: OnConnect;
   onNodeClick: NodeMouseHandler;
 }
+
+const EMPTY_NODES: Node[] = [];
+const EMPTY_EDGES: Edge[] = [];
 
 const nodeTypes = {
   helix: HelixNode,
 };
 
 export default function UniverseGraph({
-  nodes,
-  edges,
+  nodes = EMPTY_NODES,
+  edges = EMPTY_EDGES,
   onNodeDragStop,
   onConnect,
   onNodeClick,
 }: UniverseGraphProps) {
+  const flowInstanceRef =
+    useRef<ReactFlowInstance | null>(null);
+
   const [
     localNodes,
     setLocalNodes,
@@ -59,12 +68,30 @@ export default function UniverseGraph({
     setLocalEdges(edges);
   }, [edges, setLocalEdges]);
 
+  useEffect(() => {
+    if (nodes.length === 0) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      void flowInstanceRef.current?.fitView({
+        padding: 0.2,
+        duration: 300,
+      });
+    }, 100);
+
+    return () => window.clearTimeout(timer);
+  }, [nodes]);
+
   return (
     <div className="h-[700px] w-full rounded-2xl border border-cyan-500/20">
       <ReactFlow
         nodes={localNodes}
         edges={localEdges}
         nodeTypes={nodeTypes}
+        onInit={(instance) => {
+          flowInstanceRef.current = instance;
+        }}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onNodeDragStop={onNodeDragStop}
