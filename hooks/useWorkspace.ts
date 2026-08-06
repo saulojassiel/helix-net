@@ -7,8 +7,11 @@ import {
   useState,
 } from "react";
 import type {
+  Connection,
   Edge as FlowEdge,
   Node as FlowNode,
+  NodeMouseHandler,
+  OnNodeDrag,
 } from "@xyflow/react";
 
 import { supabase } from "@/lib/supabase";
@@ -64,6 +67,7 @@ export function useWorkspace(universeId: string) {
     useState(false);
 
   const [loading, setLoading] = useState(true);
+
   const [errorMessage, setErrorMessage] =
     useState("");
 
@@ -235,6 +239,77 @@ export function useWorkspace(universeId: string) {
     setSelectedNodeId(nodeId);
   }
 
+  const handleNodeClick: NodeMouseHandler = (
+    _,
+    node
+  ) => {
+    selectNode(node.id);
+  };
+
+  const handleNodeDragStop: OnNodeDrag = (
+    _,
+    node
+  ) => {
+    void universeService
+      .moveNode(
+        node.id,
+        node.position.x,
+        node.position.y
+      )
+      .catch((error: unknown) => {
+        console.error(
+          "No se pudo guardar la posición:",
+          error
+        );
+      });
+  };
+  async function handleConnect(
+  connection: Connection
+) {
+  const source = connection.source;
+  const target = connection.target;
+
+  if (!source || !target) {
+    return;
+  }
+
+  if (source === target) {
+    alert(
+      "No puedes conectar una idea consigo misma."
+    );
+    return;
+  }
+
+  const alreadyExists = edges.some(
+    (edge) =>
+      edge.source_node_id === source &&
+      edge.target_node_id === target &&
+      edge.type === "inspira"
+  );
+
+  if (alreadyExists) {
+    alert("Esta conexión ya existe.");
+    return;
+  }
+
+  try {
+    await universeService.connectIdeas(
+      universeId,
+      source,
+      target,
+      "inspira"
+    );
+
+    await loadWorkspace();
+  } catch (error) {
+    alert(
+      error instanceof Error
+        ? error.message
+        : "No se pudo crear la conexión."
+    );
+  }
+}
+
   return {
     universe,
     graph,
@@ -259,5 +334,9 @@ export function useWorkspace(universeId: string) {
     loading,
     errorMessage,
     loadWorkspace,
+
+    handleNodeDragStop,
+    handleNodeClick,
+    handleConnect,
   };
 }
