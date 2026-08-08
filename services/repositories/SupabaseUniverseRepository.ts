@@ -220,4 +220,30 @@ export class SupabaseUniverseRepository
     );
   }
 }
+async updateNode(
+  nodeId: string,
+  title: string,
+  content: string,
+  status: string,
+  priority: number,
+  metadata: Record<string, unknown> = {}
+): Promise<void> {
+  const { error } = await supabase.rpc(
+    "update_node",
+    {
+      p_node_id: nodeId,
+      p_title: title,
+      p_content: content,
+      p_status: status,
+      p_priority: priority,
+      p_metadata: metadata,
+    }
+  );
+
+  if (error) {
+    throw new Error(
+      `No se pudo actualizar el nodo: ${error.message}`
+    );
+  }
+}
 }

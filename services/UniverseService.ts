@@ -91,5 +91,31 @@ async updateEdge(
     metadata
   );
 }
+async updateNode(
+  nodeId: string,
+  title: string,
+  content: string,
+  status: string,
+  priority: number,
+  metadata: Record<string, unknown> = {}
+) {
+  const cleanTitle = title.trim();
+  const cleanContent = content.trim();
+
+  if (!cleanTitle) {
+    throw new Error(
+      "El nodo necesita un título."
+    );
+  }
+
+  return this.repository.updateNode(
+    nodeId,
+    cleanTitle,
+    cleanContent,
+    status,
+    priority,
+    metadata
+  );
+}
 }
 

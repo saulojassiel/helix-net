@@ -3,6 +3,8 @@ interface InspectorNode {
   title: string;
   content: string;
   status: string;
+  priority: number;
+  metadata: Record<string, unknown>;
 }
 
 interface InspectorEvidence {
@@ -26,6 +28,21 @@ interface InspectorEdge {
 interface InspectorPanelProps {
   node: InspectorNode | null;
   edge: InspectorEdge | null;
+
+  nodeTitle: string;
+  onNodeTitleChange: (value: string) => void;
+
+  nodeContent: string;
+  onNodeContentChange: (value: string) => void;
+
+  nodeStatus: string;
+  onNodeStatusChange: (value: string) => void;
+
+  nodePriority: number;
+  onNodePriorityChange: (value: number) => void;
+
+  isUpdatingNode: boolean;
+  onUpdateNode: () => void;
 
   edgeType: string;
   onEdgeTypeChange: (value: string) => void;
@@ -52,6 +69,21 @@ interface InspectorPanelProps {
 export default function InspectorPanel({
   node,
   edge,
+
+  nodeTitle,
+  onNodeTitleChange,
+
+  nodeContent,
+  onNodeContentChange,
+
+  nodeStatus,
+  onNodeStatusChange,
+
+  nodePriority,
+  onNodePriorityChange,
+
+  isUpdatingNode,
+  onUpdateNode,
 
   edgeType,
   onEdgeTypeChange,
@@ -88,18 +120,107 @@ export default function InspectorPanel({
 
       {node && (
         <>
-          <p className="mt-6 text-xs uppercase tracking-[0.25em] text-zinc-500">
-            {node.status}
+          <p className="mt-6 text-xs uppercase tracking-[0.25em] text-cyan-400">
+            NODO
           </p>
 
-          <h3 className="mt-3 text-2xl font-bold text-cyan-300">
-            {node.title}
-          </h3>
+          <div className="mt-6">
+            <label className="text-xs uppercase tracking-widest text-zinc-500">
+              Título
+            </label>
 
-          <p className="mt-4 leading-7 text-zinc-300">
-            {node.content ||
-              "Esta idea todavía no tiene descripción."}
-          </p>
+            <input
+              value={nodeTitle}
+              onChange={(event) =>
+                onNodeTitleChange(event.target.value)
+              }
+              className="mt-2 w-full rounded-xl border border-zinc-700 bg-black p-3 text-white outline-none focus:border-cyan-400"
+            />
+          </div>
+
+          <div className="mt-6">
+            <label className="text-xs uppercase tracking-widest text-zinc-500">
+              Contenido
+            </label>
+
+            <textarea
+              value={nodeContent}
+              onChange={(event) =>
+                onNodeContentChange(event.target.value)
+              }
+              placeholder="Describe esta idea..."
+              className="mt-2 min-h-32 w-full resize-none rounded-xl border border-zinc-700 bg-black p-3 text-white outline-none focus:border-cyan-400"
+            />
+          </div>
+
+          <div className="mt-6">
+            <label className="text-xs uppercase tracking-widest text-zinc-500">
+              Estado
+            </label>
+
+            <select
+              value={nodeStatus}
+              onChange={(event) =>
+                onNodeStatusChange(event.target.value)
+              }
+              className="mt-2 w-full rounded-xl border border-zinc-700 bg-black p-3 text-white outline-none focus:border-cyan-400"
+            >
+              <option value="SEED">Seed</option>
+              <option value="IDEA">Idea</option>
+              <option value="HYPOTHESIS">
+                Hypothesis
+              </option>
+              <option value="QUESTION">
+                Question
+              </option>
+              <option value="EVIDENCE">
+                Evidence
+              </option>
+              <option value="ARCHIVED">
+                Archived
+              </option>
+            </select>
+          </div>
+
+          <div className="mt-6">
+            <div className="flex items-center justify-between">
+              <label className="text-xs uppercase tracking-widest text-zinc-500">
+                Prioridad
+              </label>
+
+              <span className="text-sm font-semibold text-cyan-300">
+                {nodePriority}
+              </span>
+            </div>
+
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="1"
+              value={nodePriority}
+              onChange={(event) =>
+                onNodePriorityChange(
+                  Number(event.target.value)
+                )
+              }
+              className="mt-3 w-full"
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={onUpdateNode}
+            disabled={
+              !nodeTitle.trim() ||
+              isUpdatingNode
+            }
+            className="mt-8 w-full rounded-xl bg-cyan-300 px-5 py-3 font-bold text-black disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isUpdatingNode
+              ? "Guardando..."
+              : "Guardar nodo"}
+          </button>
 
           <div className="mt-8 border-t border-zinc-800 pt-5">
             <p className="text-xs uppercase tracking-widest text-zinc-600">
@@ -131,12 +252,24 @@ export default function InspectorPanel({
               }
               className="mt-2 w-full rounded-xl border border-zinc-700 bg-black p-3 text-white outline-none focus:border-violet-400"
             >
-              <option value="inspira">Inspira</option>
-              <option value="causa">Causa</option>
-              <option value="depende_de">Depende de</option>
-              <option value="complementa">Complementa</option>
-              <option value="contradice">Contradice</option>
-              <option value="demuestra">Demuestra</option>
+              <option value="inspira">
+                Inspira
+              </option>
+              <option value="causa">
+                Causa
+              </option>
+              <option value="depende_de">
+                Depende de
+              </option>
+              <option value="complementa">
+                Complementa
+              </option>
+              <option value="contradice">
+                Contradice
+              </option>
+              <option value="demuestra">
+                Demuestra
+              </option>
             </select>
           </div>
 

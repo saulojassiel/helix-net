@@ -34,6 +34,21 @@ export default function UniversePage() {
     setContent,
     addIdea,
 
+    nodeTitle,
+    setNodeTitle,
+
+    nodeContent,
+    setNodeContent,
+
+    nodeStatus,
+    setNodeStatus,
+
+    nodePriority,
+    setNodePriority,
+
+    isUpdatingNode,
+    updateSelectedNode,
+
     edgeType,
     setEdgeType,
 
@@ -132,6 +147,21 @@ export default function UniversePage() {
         <InspectorPanel
           node={selectedNode}
           edge={selectedEdge}
+
+          nodeTitle={nodeTitle}
+          onNodeTitleChange={setNodeTitle}
+
+          nodeContent={nodeContent}
+          onNodeContentChange={setNodeContent}
+
+          nodeStatus={nodeStatus}
+          onNodeStatusChange={setNodeStatus}
+
+          nodePriority={nodePriority}
+          onNodePriorityChange={setNodePriority}
+
+          isUpdatingNode={isUpdatingNode}
+          onUpdateNode={updateSelectedNode}
 
           edgeType={edgeType}
           onEdgeTypeChange={setEdgeType}

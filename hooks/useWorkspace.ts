@@ -36,6 +36,8 @@ export interface WorkspaceNode {
   title: string;
   content: string;
   status: string;
+  priority: number;
+  metadata: Record<string, unknown>;
   position_x: number;
   position_y: number;
 }
@@ -83,19 +85,42 @@ export function useWorkspace(
     setSelectedEdgeId,
   ] = useState<string | null>(null);
 
+  /*
+   * =========================
+   * CREAR IDEA
+   * =========================
+   */
+
   const [title, setTitle] = useState("");
+
   const [content, setContent] =
     useState("");
+
   const [isCreating, setIsCreating] =
     useState(false);
 
-  const [loading, setLoading] =
-    useState(true);
+  /*
+   * =========================
+   * EDITOR DE NODOS
+   * =========================
+   */
+
+  const [nodeTitle, setNodeTitle] =
+    useState("");
+
+  const [nodeContent, setNodeContent] =
+    useState("");
+
+  const [nodeStatus, setNodeStatus] =
+    useState("IDEA");
+
+  const [nodePriority, setNodePriority] =
+    useState(0);
 
   const [
-    errorMessage,
-    setErrorMessage,
-  ] = useState("");
+    isUpdatingNode,
+    setIsUpdatingNode,
+  ] = useState(false);
 
   /*
    * =========================
@@ -141,6 +166,20 @@ export function useWorkspace(
     isAddingEvidence,
     setIsAddingEvidence,
   ] = useState(false);
+
+  /*
+   * =========================
+   * ESTADO GENERAL
+   * =========================
+   */
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [
+    errorMessage,
+    setErrorMessage,
+  ] = useState("");
 
   /*
    * =========================
@@ -205,7 +244,7 @@ export function useWorkspace(
       } = await supabase
         .from("nodes")
         .select(
-          "id, title, content, status, position_x, position_y"
+          "id, title, content, status, priority, metadata, position_x, position_y"
         )
         .eq(
           "universe_id",
@@ -308,6 +347,7 @@ export function useWorkspace(
             data: {
               label: node.title,
               status: node.status,
+              priority: node.priority,
             },
           })
         ),
@@ -435,8 +475,21 @@ export function useWorkspace(
   function selectNode(
     nodeId: string
   ) {
+    const node = nodes.find(
+      (item) => item.id === nodeId
+    );
+
+    if (!node) {
+      return;
+    }
+
     setSelectedNodeId(nodeId);
     setSelectedEdgeId(null);
+
+    setNodeTitle(node.title);
+    setNodeContent(node.content);
+    setNodeStatus(node.status);
+    setNodePriority(node.priority);
   }
 
   /*
@@ -687,6 +740,41 @@ export function useWorkspace(
 
   /*
    * =========================
+   * ACTUALIZAR NODO
+   * =========================
+   */
+
+  async function updateSelectedNode() {
+    if (!selectedNode) {
+      return;
+    }
+
+    try {
+      setIsUpdatingNode(true);
+
+      await universeService.updateNode(
+        selectedNode.id,
+        nodeTitle,
+        nodeContent,
+        nodeStatus,
+        nodePriority,
+        selectedNode.metadata
+      );
+
+      await loadWorkspace();
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : "No se pudo actualizar el nodo."
+      );
+    } finally {
+      setIsUpdatingNode(false);
+    }
+  }
+
+  /*
+   * =========================
    * API DEL WORKSPACE
    * =========================
    */
@@ -716,6 +804,21 @@ export function useWorkspace(
     setTitle,
     setContent,
     addIdea,
+
+    nodeTitle,
+    setNodeTitle,
+
+    nodeContent,
+    setNodeContent,
+
+    nodeStatus,
+    setNodeStatus,
+
+    nodePriority,
+    setNodePriority,
+
+    isUpdatingNode,
+    updateSelectedNode,
 
     edgeType,
     setEdgeType,
