@@ -92,10 +92,8 @@ export function useWorkspace(
    */
 
   const [title, setTitle] = useState("");
-
   const [content, setContent] =
     useState("");
-
   const [isCreating, setIsCreating] =
     useState(false);
 
@@ -364,35 +362,112 @@ export function useWorkspace(
   const flowEdges =
     useMemo<FlowEdge[]>(
       () =>
-        edges.map((edge) => ({
-          id: edge.id,
+        edges.map((edge) => {
+          const confidence =
+            Math.max(
+              0,
+              Math.min(
+                1,
+                edge.confidence
+              )
+            );
 
-          source:
-            edge.source_node_id,
+          const strength =
+            Math.max(
+              0,
+              Math.min(
+                1,
+                edge.strength
+              )
+            );
 
-          target:
-            edge.target_node_id,
+          const strokeWidth =
+            1.5 +
+            strength * 4;
 
-          label: `${
-            edge.type
-          } · ${(
-            edge.confidence * 100
-          ).toFixed(0)}%`,
+          const opacity =
+            0.25 +
+            confidence * 0.75;
 
-          data: {
-            type: edge.type,
-            strength:
-              edge.strength,
-            confidence:
-              edge.confidence,
-            description:
-              edge.description,
-            evidence:
-              edge.evidence,
-            metadata:
-              edge.metadata,
-          },
-        })),
+          const relationStyle =
+            edge.type === "contradice"
+              ? {
+                  stroke: "#ef4444",
+                  strokeDasharray:
+                    "8 6",
+                }
+              : edge.type === "demuestra"
+                ? {
+                    stroke: "#22c55e",
+                  }
+                : edge.type === "causa"
+                  ? {
+                      stroke:
+                        "#f59e0b",
+                    }
+                  : edge.type ===
+                      "depende_de"
+                    ? {
+                        stroke:
+                          "#3b82f6",
+                        strokeDasharray:
+                          "4 4",
+                      }
+                    : edge.type ===
+                        "complementa"
+                      ? {
+                          stroke:
+                            "#a855f7",
+                        }
+                      : {
+                          stroke:
+                            "#22d3ee",
+                        };
+
+          return {
+            id: edge.id,
+
+            source:
+              edge.source_node_id,
+
+            target:
+              edge.target_node_id,
+
+            label: `${
+              edge.type
+            } · ${(
+              confidence * 100
+            ).toFixed(0)}%`,
+
+            animated:
+              strength >= 0.8,
+
+            style: {
+              ...relationStyle,
+              strokeWidth,
+              opacity,
+            },
+
+            labelStyle: {
+              fill: "#d4d4d8",
+              fontSize: 12,
+            },
+
+            data: {
+              type: edge.type,
+              strength:
+                edge.strength,
+              confidence:
+                edge.confidence,
+              description:
+                edge.description,
+              evidence:
+                edge.evidence,
+              metadata:
+                edge.metadata,
+            },
+          };
+        }),
 
       [edges]
     );
@@ -703,11 +778,13 @@ export function useWorkspace(
     try {
       setIsAddingEvidence(true);
 
-      const nextEvidence: WorkspaceEvidence[] = [
+      const nextEvidence:
+        WorkspaceEvidence[] = [
         ...selectedEdge.evidence,
         {
           type: "note",
-          content: cleanEvidence,
+          content:
+            cleanEvidence,
           created_at:
             new Date().toISOString(),
         },
