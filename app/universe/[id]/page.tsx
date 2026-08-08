@@ -49,6 +49,11 @@ export default function UniversePage() {
     isUpdatingEdge,
     updateSelectedEdge,
 
+    evidenceText,
+    setEvidenceText,
+    isAddingEvidence,
+    addEvidenceToSelectedEdge,
+
     loading,
     errorMessage,
 
@@ -142,6 +147,12 @@ export default function UniversePage() {
 
           isUpdatingEdge={isUpdatingEdge}
           onUpdateEdge={updateSelectedEdge}
+
+          evidenceText={evidenceText}
+          onEvidenceTextChange={setEvidenceText}
+
+          isAddingEvidence={isAddingEvidence}
+          onAddEvidence={addEvidenceToSelectedEdge}
         />
       }
     />

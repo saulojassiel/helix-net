@@ -40,6 +40,12 @@ export interface WorkspaceNode {
   position_y: number;
 }
 
+export interface WorkspaceEvidence {
+  type: string;
+  content: string;
+  created_at: string;
+}
+
 export interface WorkspaceEdge {
   id: string;
   source_node_id: string;
@@ -48,7 +54,7 @@ export interface WorkspaceEdge {
   strength: number;
   confidence: number;
   description: string | null;
-  evidence: unknown[];
+  evidence: WorkspaceEvidence[];
   metadata: Record<string, unknown>;
 }
 
@@ -78,10 +84,8 @@ export function useWorkspace(
   ] = useState<string | null>(null);
 
   const [title, setTitle] = useState("");
-
   const [content, setContent] =
     useState("");
-
   const [isCreating, setIsCreating] =
     useState(false);
 
@@ -120,6 +124,22 @@ export function useWorkspace(
   const [
     isUpdatingEdge,
     setIsUpdatingEdge,
+  ] = useState(false);
+
+  /*
+   * =========================
+   * EVIDENCIA
+   * =========================
+   */
+
+  const [
+    evidenceText,
+    setEvidenceText,
+  ] = useState("");
+
+  const [
+    isAddingEvidence,
+    setIsAddingEvidence,
   ] = useState(false);
 
   /*
@@ -269,14 +289,12 @@ export function useWorkspace(
         nodes.map(
           (node, index) => ({
             id: node.id,
-
             type: "helix",
 
             position: {
               x:
                 node.position_x === 0
-                  ? (index % 3) *
-                    280
+                  ? (index % 3) * 280
                   : node.position_x,
 
               y:
@@ -323,19 +341,14 @@ export function useWorkspace(
 
           data: {
             type: edge.type,
-
             strength:
               edge.strength,
-
             confidence:
               edge.confidence,
-
             description:
               edge.description,
-
             evidence:
               edge.evidence,
-
             metadata:
               edge.metadata,
           },
@@ -374,13 +387,6 @@ export function useWorkspace(
       [edges, selectedEdgeId]
     );
 
-  /*
-   * =========================
-   * SINCRONIZAR EDITOR EDGE
-   * =========================
-   */
-
- 
   /*
    * =========================
    * CREAR IDEA
@@ -439,27 +445,32 @@ export function useWorkspace(
    * =========================
    */
 
- function selectEdge(
-  edgeId: string
-) {
-  const edge = edges.find(
-    (item) => item.id === edgeId
-  );
+  function selectEdge(
+    edgeId: string
+  ) {
+    const edge = edges.find(
+      (item) => item.id === edgeId
+    );
 
-  if (!edge) {
-    return;
+    if (!edge) {
+      return;
+    }
+
+    setSelectedEdgeId(edgeId);
+    setSelectedNodeId(null);
+
+    setEdgeType(edge.type);
+    setEdgeStrength(edge.strength);
+    setEdgeConfidence(
+      edge.confidence
+    );
+    setEdgeDescription(
+      edge.description ?? ""
+    );
+
+    setEvidenceText("");
   }
 
-  setSelectedEdgeId(edgeId);
-  setSelectedNodeId(null);
-
-  setEdgeType(edge.type);
-  setEdgeStrength(edge.strength);
-  setEdgeConfidence(edge.confidence);
-  setEdgeDescription(
-    edge.description ?? ""
-  );
-}
   /*
    * =========================
    * CLICK NODO
@@ -620,6 +631,62 @@ export function useWorkspace(
 
   /*
    * =========================
+   * AGREGAR EVIDENCIA
+   * =========================
+   */
+
+  async function addEvidenceToSelectedEdge() {
+    if (!selectedEdge) {
+      return;
+    }
+
+    const cleanEvidence =
+      evidenceText.trim();
+
+    if (!cleanEvidence) {
+      return;
+    }
+
+    try {
+      setIsAddingEvidence(true);
+
+      const nextEvidence: WorkspaceEvidence[] = [
+        ...selectedEdge.evidence,
+        {
+          type: "note",
+          content: cleanEvidence,
+          created_at:
+            new Date().toISOString(),
+        },
+      ];
+
+      await universeService.updateEdge(
+        selectedEdge.id,
+        edgeType,
+        edgeStrength,
+        edgeConfidence,
+        edgeDescription.trim() ||
+          null,
+        nextEvidence,
+        selectedEdge.metadata
+      );
+
+      setEvidenceText("");
+
+      await loadWorkspace();
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : "No se pudo agregar la evidencia."
+      );
+    } finally {
+      setIsAddingEvidence(false);
+    }
+  }
+
+  /*
+   * =========================
    * API DEL WORKSPACE
    * =========================
    */
@@ -664,6 +731,11 @@ export function useWorkspace(
 
     isUpdatingEdge,
     updateSelectedEdge,
+
+    evidenceText,
+    setEvidenceText,
+    isAddingEvidence,
+    addEvidenceToSelectedEdge,
 
     loading,
     errorMessage,

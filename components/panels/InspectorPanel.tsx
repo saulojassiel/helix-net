@@ -5,6 +5,12 @@ interface InspectorNode {
   status: string;
 }
 
+interface InspectorEvidence {
+  type: string;
+  content: string;
+  created_at: string;
+}
+
 interface InspectorEdge {
   id: string;
   source_node_id: string;
@@ -13,7 +19,7 @@ interface InspectorEdge {
   strength: number;
   confidence: number;
   description: string | null;
-  evidence: unknown[];
+  evidence: InspectorEvidence[];
   metadata: Record<string, unknown>;
 }
 
@@ -35,6 +41,12 @@ interface InspectorPanelProps {
 
   isUpdatingEdge: boolean;
   onUpdateEdge: () => void;
+
+  evidenceText: string;
+  onEvidenceTextChange: (value: string) => void;
+
+  isAddingEvidence: boolean;
+  onAddEvidence: () => void;
 }
 
 export default function InspectorPanel({
@@ -55,6 +67,12 @@ export default function InspectorPanel({
 
   isUpdatingEdge,
   onUpdateEdge,
+
+  evidenceText,
+  onEvidenceTextChange,
+
+  isAddingEvidence,
+  onAddEvidence,
 }: InspectorPanelProps) {
   return (
     <aside className="rounded-3xl border border-cyan-500/20 bg-zinc-950 p-6">
@@ -113,29 +131,12 @@ export default function InspectorPanel({
               }
               className="mt-2 w-full rounded-xl border border-zinc-700 bg-black p-3 text-white outline-none focus:border-violet-400"
             >
-              <option value="inspira">
-                Inspira
-              </option>
-
-              <option value="causa">
-                Causa
-              </option>
-
-              <option value="depende_de">
-                Depende de
-              </option>
-
-              <option value="complementa">
-                Complementa
-              </option>
-
-              <option value="contradice">
-                Contradice
-              </option>
-
-              <option value="demuestra">
-                Demuestra
-              </option>
+              <option value="inspira">Inspira</option>
+              <option value="causa">Causa</option>
+              <option value="depende_de">Depende de</option>
+              <option value="complementa">Complementa</option>
+              <option value="contradice">Contradice</option>
+              <option value="demuestra">Demuestra</option>
             </select>
           </div>
 
@@ -208,26 +209,80 @@ export default function InspectorPanel({
             />
           </div>
 
-          <div className="mt-6">
-            <p className="text-xs uppercase tracking-widest text-zinc-500">
-              Evidencia
-            </p>
-
-            <p className="mt-2 text-zinc-300">
-              {edge.evidence.length} elementos
-            </p>
-          </div>
-
           <button
             type="button"
             onClick={onUpdateEdge}
             disabled={isUpdatingEdge}
-            className="mt-8 w-full rounded-xl bg-violet-300 px-5 py-3 font-bold text-black disabled:cursor-not-allowed disabled:opacity-50"
+            className="mt-6 w-full rounded-xl bg-violet-300 px-5 py-3 font-bold text-black disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isUpdatingEdge
               ? "Guardando..."
               : "Guardar relación"}
           </button>
+
+          <div className="mt-8 border-t border-zinc-800 pt-6">
+            <p className="text-xs uppercase tracking-widest text-zinc-500">
+              Evidencia
+            </p>
+
+            <textarea
+              value={evidenceText}
+              onChange={(event) =>
+                onEvidenceTextChange(
+                  event.target.value
+                )
+              }
+              placeholder="Agrega una nota, fuente, observación o evidencia..."
+              className="mt-3 min-h-24 w-full resize-none rounded-xl border border-zinc-700 bg-black p-3 text-white outline-none focus:border-cyan-400"
+            />
+
+            <button
+              type="button"
+              onClick={onAddEvidence}
+              disabled={
+                !evidenceText.trim() ||
+                isAddingEvidence
+              }
+              className="mt-3 w-full rounded-xl border border-cyan-500/40 bg-cyan-950/30 px-5 py-3 font-semibold text-cyan-200 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isAddingEvidence
+                ? "Agregando..."
+                : "Agregar evidencia"}
+            </button>
+
+            <div className="mt-6 grid gap-3">
+              {edge.evidence.length === 0 && (
+                <p className="text-sm text-zinc-600">
+                  Esta relación todavía no tiene evidencia.
+                </p>
+              )}
+
+              {edge.evidence.map(
+                (item, index) => (
+                  <article
+                    key={`${item.created_at}-${index}`}
+                    className="rounded-xl border border-zinc-800 bg-black p-4"
+                  >
+                    <p className="text-sm leading-6 text-zinc-300">
+                      {item.content}
+                    </p>
+
+                    <div className="mt-3 flex items-center justify-between gap-3">
+                      <span className="text-xs uppercase tracking-wider text-cyan-500">
+                        {item.type}
+                      </span>
+
+                      <span className="text-xs text-zinc-600">
+                        {new Date(
+                          item.created_at
+                        ).toLocaleString()}
+                      </span>
+                    </div>
+                  </article>
+                )
+              )}
+            </div>
+          </div>
 
           <div className="mt-8 border-t border-zinc-800 pt-5">
             <p className="text-xs uppercase tracking-widest text-zinc-600">
