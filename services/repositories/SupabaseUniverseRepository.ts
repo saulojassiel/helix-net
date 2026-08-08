@@ -192,4 +192,32 @@ export class SupabaseUniverseRepository
       );
     }
   }
+  async updateEdge(
+  edgeId: string,
+  relationType: string,
+  strength: number,
+  confidence: number,
+  description: string | null,
+  evidence: unknown[] = [],
+  metadata: Record<string, unknown> = {}
+): Promise<void> {
+  const { error } = await supabase.rpc(
+    "update_edge",
+    {
+      p_edge_id: edgeId,
+      p_relation_type: relationType,
+      p_strength: strength,
+      p_confidence: confidence,
+      p_description: description,
+      p_evidence: evidence,
+      p_metadata: metadata,
+    }
+  );
+
+  if (error) {
+    throw new Error(
+      `No se pudo actualizar la relación: ${error.message}`
+    );
+  }
+}
 }

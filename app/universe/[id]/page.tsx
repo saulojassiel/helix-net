@@ -34,6 +34,21 @@ export default function UniversePage() {
     setContent,
     addIdea,
 
+    edgeType,
+    setEdgeType,
+
+    edgeStrength,
+    setEdgeStrength,
+
+    edgeConfidence,
+    setEdgeConfidence,
+
+    edgeDescription,
+    setEdgeDescription,
+
+    isUpdatingEdge,
+    updateSelectedEdge,
+
     loading,
     errorMessage,
 
@@ -74,9 +89,7 @@ export default function UniversePage() {
       header={
         <UniverseHeader
           title={universe.title}
-          description={
-            universe.description
-          }
+          description={universe.description}
         />
       }
 
@@ -85,26 +98,16 @@ export default function UniversePage() {
           <AddIdeaPanel
             title={title}
             content={content}
-            isCreating={
-              isCreating
-            }
-            onTitleChange={
-              setTitle
-            }
-            onContentChange={
-              setContent
-            }
+            isCreating={isCreating}
+            onTitleChange={setTitle}
+            onContentChange={setContent}
             onCreate={addIdea}
           />
 
           <ExplorerPanel
             nodes={nodes}
-            selectedNodeId={
-              selectedNodeId
-            }
-            onSelectNode={
-              setSelectedNodeId
-            }
+            selectedNodeId={selectedNodeId}
+            onSelectNode={setSelectedNodeId}
           />
         </>
       }
@@ -113,26 +116,33 @@ export default function UniversePage() {
         <GraphWorkspace
           nodes={flowNodes}
           edges={flowEdges}
-          onNodeDragStop={
-            handleNodeDragStop
-          }
-          onConnect={
-            handleConnect
-          }
-          onNodeClick={
-            handleNodeClick
-          }
-          onEdgeClick={
-            handleEdgeClick
-          }
+          onNodeDragStop={handleNodeDragStop}
+          onConnect={handleConnect}
+          onNodeClick={handleNodeClick}
+          onEdgeClick={handleEdgeClick}
         />
       }
 
       inspector={
-       <InspectorPanel
-  node={selectedNode}
-  edge={selectedEdge}
-/>
+        <InspectorPanel
+          node={selectedNode}
+          edge={selectedEdge}
+
+          edgeType={edgeType}
+          onEdgeTypeChange={setEdgeType}
+
+          edgeStrength={edgeStrength}
+          onEdgeStrengthChange={setEdgeStrength}
+
+          edgeConfidence={edgeConfidence}
+          onEdgeConfidenceChange={setEdgeConfidence}
+
+          edgeDescription={edgeDescription}
+          onEdgeDescriptionChange={setEdgeDescription}
+
+          isUpdatingEdge={isUpdatingEdge}
+          onUpdateEdge={updateSelectedEdge}
+        />
       }
     />
   );

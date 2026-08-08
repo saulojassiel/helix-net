@@ -20,11 +20,41 @@ interface InspectorEdge {
 interface InspectorPanelProps {
   node: InspectorNode | null;
   edge: InspectorEdge | null;
+
+  edgeType: string;
+  onEdgeTypeChange: (value: string) => void;
+
+  edgeStrength: number;
+  onEdgeStrengthChange: (value: number) => void;
+
+  edgeConfidence: number;
+  onEdgeConfidenceChange: (value: number) => void;
+
+  edgeDescription: string;
+  onEdgeDescriptionChange: (value: string) => void;
+
+  isUpdatingEdge: boolean;
+  onUpdateEdge: () => void;
 }
 
 export default function InspectorPanel({
   node,
   edge,
+
+  edgeType,
+  onEdgeTypeChange,
+
+  edgeStrength,
+  onEdgeStrengthChange,
+
+  edgeConfidence,
+  onEdgeConfidenceChange,
+
+  edgeDescription,
+  onEdgeDescriptionChange,
+
+  isUpdatingEdge,
+  onUpdateEdge,
 }: InspectorPanelProps) {
   return (
     <aside className="rounded-3xl border border-cyan-500/20 bg-zinc-950 p-6">
@@ -71,52 +101,133 @@ export default function InspectorPanel({
             RELACIÓN
           </p>
 
-          <h3 className="mt-3 text-2xl font-bold text-violet-300">
-            {edge.type}
-          </h3>
+          <div className="mt-6">
+            <label className="text-xs uppercase tracking-widest text-zinc-500">
+              Tipo
+            </label>
 
-          <div className="mt-6 space-y-5">
-            <div>
-              <p className="text-xs uppercase tracking-widest text-zinc-500">
-                Confianza
-              </p>
+            <select
+              value={edgeType}
+              onChange={(event) =>
+                onEdgeTypeChange(event.target.value)
+              }
+              className="mt-2 w-full rounded-xl border border-zinc-700 bg-black p-3 text-white outline-none focus:border-violet-400"
+            >
+              <option value="inspira">
+                Inspira
+              </option>
 
-              <p className="mt-2 text-xl font-semibold">
-                {(edge.confidence * 100).toFixed(0)}%
-              </p>
-            </div>
+              <option value="causa">
+                Causa
+              </option>
 
-            <div>
-              <p className="text-xs uppercase tracking-widest text-zinc-500">
-                Fuerza
-              </p>
+              <option value="depende_de">
+                Depende de
+              </option>
 
-              <p className="mt-2 text-xl font-semibold">
-                {(edge.strength * 100).toFixed(0)}%
-              </p>
-            </div>
+              <option value="complementa">
+                Complementa
+              </option>
 
-            <div>
-              <p className="text-xs uppercase tracking-widest text-zinc-500">
-                Descripción
-              </p>
+              <option value="contradice">
+                Contradice
+              </option>
 
-              <p className="mt-2 leading-7 text-zinc-300">
-                {edge.description ||
-                  "Esta relación todavía no tiene explicación."}
-              </p>
-            </div>
-
-            <div>
-              <p className="text-xs uppercase tracking-widest text-zinc-500">
-                Evidencia
-              </p>
-
-              <p className="mt-2 text-zinc-300">
-                {edge.evidence.length} elementos
-              </p>
-            </div>
+              <option value="demuestra">
+                Demuestra
+              </option>
+            </select>
           </div>
+
+          <div className="mt-6">
+            <div className="flex items-center justify-between">
+              <label className="text-xs uppercase tracking-widest text-zinc-500">
+                Fuerza
+              </label>
+
+              <span className="text-sm font-semibold text-violet-300">
+                {(edgeStrength * 100).toFixed(0)}%
+              </span>
+            </div>
+
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              value={edgeStrength}
+              onChange={(event) =>
+                onEdgeStrengthChange(
+                  Number(event.target.value)
+                )
+              }
+              className="mt-3 w-full"
+            />
+          </div>
+
+          <div className="mt-6">
+            <div className="flex items-center justify-between">
+              <label className="text-xs uppercase tracking-widest text-zinc-500">
+                Confianza
+              </label>
+
+              <span className="text-sm font-semibold text-violet-300">
+                {(edgeConfidence * 100).toFixed(0)}%
+              </span>
+            </div>
+
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              value={edgeConfidence}
+              onChange={(event) =>
+                onEdgeConfidenceChange(
+                  Number(event.target.value)
+                )
+              }
+              className="mt-3 w-full"
+            />
+          </div>
+
+          <div className="mt-6">
+            <label className="text-xs uppercase tracking-widest text-zinc-500">
+              Descripción
+            </label>
+
+            <textarea
+              value={edgeDescription}
+              onChange={(event) =>
+                onEdgeDescriptionChange(
+                  event.target.value
+                )
+              }
+              placeholder="Explica por qué existe esta relación..."
+              className="mt-2 min-h-32 w-full resize-none rounded-xl border border-zinc-700 bg-black p-3 text-white outline-none focus:border-violet-400"
+            />
+          </div>
+
+          <div className="mt-6">
+            <p className="text-xs uppercase tracking-widest text-zinc-500">
+              Evidencia
+            </p>
+
+            <p className="mt-2 text-zinc-300">
+              {edge.evidence.length} elementos
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onUpdateEdge}
+            disabled={isUpdatingEdge}
+            className="mt-8 w-full rounded-xl bg-violet-300 px-5 py-3 font-bold text-black disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isUpdatingEdge
+              ? "Guardando..."
+              : "Guardar relación"}
+          </button>
 
           <div className="mt-8 border-t border-zinc-800 pt-5">
             <p className="text-xs uppercase tracking-widest text-zinc-600">

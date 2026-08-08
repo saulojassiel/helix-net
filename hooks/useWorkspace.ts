@@ -78,8 +78,10 @@ export function useWorkspace(
   ] = useState<string | null>(null);
 
   const [title, setTitle] = useState("");
+
   const [content, setContent] =
     useState("");
+
   const [isCreating, setIsCreating] =
     useState(false);
 
@@ -90,6 +92,41 @@ export function useWorkspace(
     errorMessage,
     setErrorMessage,
   ] = useState("");
+
+  /*
+   * =========================
+   * EDITOR DE RELACIONES
+   * =========================
+   */
+
+  const [edgeType, setEdgeType] =
+    useState("inspira");
+
+  const [
+    edgeStrength,
+    setEdgeStrength,
+  ] = useState(1);
+
+  const [
+    edgeConfidence,
+    setEdgeConfidence,
+  ] = useState(1);
+
+  const [
+    edgeDescription,
+    setEdgeDescription,
+  ] = useState("");
+
+  const [
+    isUpdatingEdge,
+    setIsUpdatingEdge,
+  ] = useState(false);
+
+  /*
+   * =========================
+   * CARGAR WORKSPACE
+   * =========================
+   */
 
   const loadWorkspace =
     useCallback(async () => {
@@ -191,9 +228,11 @@ export function useWorkspace(
 
       setUniverse(universeData);
       setGraph(graphData);
+
       setNodes(
         (nodeData ?? []) as WorkspaceNode[]
       );
+
       setEdges(
         (edgeData ?? []) as WorkspaceEdge[]
       );
@@ -201,15 +240,28 @@ export function useWorkspace(
       setLoading(false);
     }, [universeId]);
 
+  /*
+   * =========================
+   * CARGA INICIAL
+   * =========================
+   */
+
   useEffect(() => {
     const timer =
       window.setTimeout(() => {
         void loadWorkspace();
       }, 0);
 
-    return () =>
+    return () => {
       window.clearTimeout(timer);
+    };
   }, [loadWorkspace]);
+
+  /*
+   * =========================
+   * FLOW NODES
+   * =========================
+   */
 
   const flowNodes =
     useMemo<FlowNode[]>(
@@ -217,12 +269,14 @@ export function useWorkspace(
         nodes.map(
           (node, index) => ({
             id: node.id,
+
             type: "helix",
 
             position: {
               x:
                 node.position_x === 0
-                  ? (index % 3) * 280
+                  ? (index % 3) *
+                    280
                   : node.position_x,
 
               y:
@@ -239,8 +293,15 @@ export function useWorkspace(
             },
           })
         ),
+
       [nodes]
     );
+
+  /*
+   * =========================
+   * FLOW EDGES
+   * =========================
+   */
 
   const flowEdges =
     useMemo<FlowEdge[]>(
@@ -262,20 +323,32 @@ export function useWorkspace(
 
           data: {
             type: edge.type,
+
             strength:
               edge.strength,
+
             confidence:
               edge.confidence,
+
             description:
               edge.description,
+
             evidence:
               edge.evidence,
+
             metadata:
               edge.metadata,
           },
         })),
+
       [edges]
     );
+
+  /*
+   * =========================
+   * SELECCIÓN
+   * =========================
+   */
 
   const selectedNode =
     useMemo(
@@ -285,6 +358,7 @@ export function useWorkspace(
             node.id ===
             selectedNodeId
         ) ?? null,
+
       [nodes, selectedNodeId]
     );
 
@@ -296,8 +370,22 @@ export function useWorkspace(
             edge.id ===
             selectedEdgeId
         ) ?? null,
+
       [edges, selectedEdgeId]
     );
+
+  /*
+   * =========================
+   * SINCRONIZAR EDITOR EDGE
+   * =========================
+   */
+
+ 
+  /*
+   * =========================
+   * CREAR IDEA
+   * =========================
+   */
 
   async function addIdea() {
     if (
@@ -332,6 +420,12 @@ export function useWorkspace(
     }
   }
 
+  /*
+   * =========================
+   * SELECCIONAR NODO
+   * =========================
+   */
+
   function selectNode(
     nodeId: string
   ) {
@@ -339,12 +433,38 @@ export function useWorkspace(
     setSelectedEdgeId(null);
   }
 
-  function selectEdge(
-    edgeId: string
-  ) {
-    setSelectedEdgeId(edgeId);
-    setSelectedNodeId(null);
+  /*
+   * =========================
+   * SELECCIONAR EDGE
+   * =========================
+   */
+
+ function selectEdge(
+  edgeId: string
+) {
+  const edge = edges.find(
+    (item) => item.id === edgeId
+  );
+
+  if (!edge) {
+    return;
   }
+
+  setSelectedEdgeId(edgeId);
+  setSelectedNodeId(null);
+
+  setEdgeType(edge.type);
+  setEdgeStrength(edge.strength);
+  setEdgeConfidence(edge.confidence);
+  setEdgeDescription(
+    edge.description ?? ""
+  );
+}
+  /*
+   * =========================
+   * CLICK NODO
+   * =========================
+   */
 
   const handleNodeClick:
     NodeMouseHandler = (
@@ -354,6 +474,12 @@ export function useWorkspace(
     selectNode(node.id);
   };
 
+  /*
+   * =========================
+   * CLICK EDGE
+   * =========================
+   */
+
   const handleEdgeClick:
     EdgeMouseHandler = (
     _,
@@ -361,6 +487,12 @@ export function useWorkspace(
   ) => {
     selectEdge(edge.id);
   };
+
+  /*
+   * =========================
+   * MOVER NODO
+   * =========================
+   */
 
   const handleNodeDragStop:
     OnNodeDrag = (
@@ -383,6 +515,12 @@ export function useWorkspace(
       );
   };
 
+  /*
+   * =========================
+   * CONECTAR NODOS
+   * =========================
+   */
+
   async function handleConnect(
     connection: Connection
   ) {
@@ -400,6 +538,7 @@ export function useWorkspace(
       alert(
         "No puedes conectar una idea consigo misma."
       );
+
       return;
     }
 
@@ -417,6 +556,7 @@ export function useWorkspace(
       alert(
         "Esta conexión ya existe."
       );
+
       return;
     }
 
@@ -440,6 +580,49 @@ export function useWorkspace(
       );
     }
   }
+
+  /*
+   * =========================
+   * ACTUALIZAR EDGE
+   * =========================
+   */
+
+  async function updateSelectedEdge() {
+    if (!selectedEdge) {
+      return;
+    }
+
+    try {
+      setIsUpdatingEdge(true);
+
+      await universeService.updateEdge(
+        selectedEdge.id,
+        edgeType,
+        edgeStrength,
+        edgeConfidence,
+        edgeDescription.trim() ||
+          null,
+        selectedEdge.evidence,
+        selectedEdge.metadata
+      );
+
+      await loadWorkspace();
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : "No se pudo actualizar la relación."
+      );
+    } finally {
+      setIsUpdatingEdge(false);
+    }
+  }
+
+  /*
+   * =========================
+   * API DEL WORKSPACE
+   * =========================
+   */
 
   return {
     universe,
@@ -466,6 +649,21 @@ export function useWorkspace(
     setTitle,
     setContent,
     addIdea,
+
+    edgeType,
+    setEdgeType,
+
+    edgeStrength,
+    setEdgeStrength,
+
+    edgeConfidence,
+    setEdgeConfidence,
+
+    edgeDescription,
+    setEdgeDescription,
+
+    isUpdatingEdge,
+    updateSelectedEdge,
 
     loading,
     errorMessage,

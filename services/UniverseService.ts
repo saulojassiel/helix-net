@@ -72,5 +72,24 @@ export class UniverseService {
     description
   );
 }
+async updateEdge(
+  edgeId: string,
+  relationType: string,
+  strength: number,
+  confidence: number,
+  description: string | null,
+  evidence: unknown[] = [],
+  metadata: Record<string, unknown> = {}
+) {
+  return this.repository.updateEdge(
+    edgeId,
+    relationType,
+    strength,
+    confidence,
+    description,
+    evidence,
+    metadata
+  );
+}
 }
 
