@@ -3,6 +3,7 @@
 import type {
   Connection,
   Edge,
+  EdgeMouseHandler,
   Node,
   NodeMouseHandler,
   OnNodeDrag,
@@ -16,6 +17,7 @@ interface GraphWorkspaceProps {
   onNodeDragStop: OnNodeDrag;
   onConnect: (connection: Connection) => void;
   onNodeClick: NodeMouseHandler;
+  onEdgeClick: EdgeMouseHandler;
 }
 
 export default function GraphWorkspace({
@@ -24,6 +26,7 @@ export default function GraphWorkspace({
   onNodeDragStop,
   onConnect,
   onNodeClick,
+  onEdgeClick,
 }: GraphWorkspaceProps) {
   return (
     <section className="min-w-0">
@@ -38,6 +41,7 @@ export default function GraphWorkspace({
           onNodeDragStop={onNodeDragStop}
           onConnect={onConnect}
           onNodeClick={onNodeClick}
+          onEdgeClick={onEdgeClick}
         />
       </div>
     </section>

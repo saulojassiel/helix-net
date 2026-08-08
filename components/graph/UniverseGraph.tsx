@@ -4,6 +4,7 @@ import {
   useEffect,
   useRef,
 } from "react";
+
 import {
   Background,
   Controls,
@@ -12,6 +13,7 @@ import {
   useEdgesState,
   useNodesState,
   type Edge,
+  type EdgeMouseHandler,
   type Node,
   type NodeMouseHandler,
   type OnConnect,
@@ -29,6 +31,7 @@ interface UniverseGraphProps {
   onNodeDragStop: OnNodeDrag;
   onConnect: OnConnect;
   onNodeClick: NodeMouseHandler;
+  onEdgeClick: EdgeMouseHandler;
 }
 
 const EMPTY_NODES: Node[] = [];
@@ -44,6 +47,7 @@ export default function UniverseGraph({
   onNodeDragStop,
   onConnect,
   onNodeClick,
+  onEdgeClick,
 }: UniverseGraphProps) {
   const flowInstanceRef =
     useRef<ReactFlowInstance | null>(null);
@@ -80,7 +84,9 @@ export default function UniverseGraph({
       });
     }, 100);
 
-    return () => window.clearTimeout(timer);
+    return () => {
+      window.clearTimeout(timer);
+    };
   }, [nodes]);
 
   return (
@@ -97,10 +103,13 @@ export default function UniverseGraph({
         onNodeDragStop={onNodeDragStop}
         onConnect={onConnect}
         onNodeClick={onNodeClick}
+        onEdgeClick={onEdgeClick}
         fitView
       >
         <MiniMap />
+
         <Controls />
+
         <Background />
       </ReactFlow>
     </div>

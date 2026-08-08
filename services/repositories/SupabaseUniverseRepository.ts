@@ -135,36 +135,43 @@ export class SupabaseUniverseRepository
   }
 
   async connectNodes(
-    universeId: string,
-    sourceNodeId: string,
-    targetNodeId: string,
-    relationType: string
-  ) {
-    const { data, error } = await supabase.rpc(
-      "connect_nodes",
-      {
-        p_universe_id: universeId,
-        p_source_node_id: sourceNodeId,
-        p_target_node_id: targetNodeId,
-        p_relation_type: relationType,
-      }
+  universeId: string,
+  sourceNodeId: string,
+  targetNodeId: string,
+  relationType: string,
+  strength = 1,
+  confidence = 1,
+  description: string | null = null
+) {
+  const { data, error } = await supabase.rpc(
+    "connect_nodes",
+    {
+      p_universe_id: universeId,
+      p_source_node_id: sourceNodeId,
+      p_target_node_id: targetNodeId,
+      p_relation_type: relationType,
+      p_strength: strength,
+      p_confidence: confidence,
+      p_description: description,
+      p_evidence: [],
+      p_metadata: {},
+    }
+  );
+
+  if (error) {
+    throw new Error(
+      `No se pudo crear la relación: ${error.message}`
     );
-
-    if (error) {
-      throw new Error(
-        `No se pudo crear la relación: ${error.message}`
-      );
-    }
-
-    if (!data) {
-      throw new Error(
-        "Supabase no devolvió el identificador de la relación."
-      );
-    }
-
-    return data;
   }
 
+  if (!data) {
+    throw new Error(
+      "Supabase no devolvió el identificador de la relación."
+    );
+  }
+
+  return data;
+}
   async moveNode(
     nodeId: string,
     positionX: number,

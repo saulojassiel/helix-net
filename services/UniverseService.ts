@@ -57,13 +57,19 @@ export class UniverseService {
   universeId: string,
   sourceNodeId: string,
   targetNodeId: string,
-  relationType: string
+  relationType: string,
+  strength = 1,
+  confidence = 1,
+  description: string | null = null
 ) {
   return this.repository.connectNodes(
     universeId,
     sourceNodeId,
     targetNodeId,
-    relationType
+    relationType,
+    strength,
+    confidence,
+    description
   );
 }
 }

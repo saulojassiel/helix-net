@@ -17,21 +17,29 @@ export default function UniversePage() {
     universe,
     graph,
     nodes,
+
     flowNodes,
     flowEdges,
-    loading,
-    errorMessage,
+
+    selectedNode,
     selectedNodeId,
     setSelectedNodeId,
-    selectedNode,
+
+    selectedEdge,
+
     title,
     content,
     isCreating,
     setTitle,
     setContent,
     addIdea,
+
+    loading,
+    errorMessage,
+
     handleNodeDragStop,
     handleNodeClick,
+    handleEdgeClick,
     handleConnect,
   } = useWorkspace(params.id);
 
@@ -43,7 +51,11 @@ export default function UniversePage() {
     );
   }
 
-  if (errorMessage || !universe || !graph) {
+  if (
+    errorMessage ||
+    !universe ||
+    !graph
+  ) {
     return (
       <main className="min-h-screen bg-black p-10 text-white">
         <h1 className="text-3xl font-bold">
@@ -62,38 +74,65 @@ export default function UniversePage() {
       header={
         <UniverseHeader
           title={universe.title}
-          description={universe.description}
+          description={
+            universe.description
+          }
         />
       }
+
       explorer={
         <>
           <AddIdeaPanel
             title={title}
             content={content}
-            isCreating={isCreating}
-            onTitleChange={setTitle}
-            onContentChange={setContent}
+            isCreating={
+              isCreating
+            }
+            onTitleChange={
+              setTitle
+            }
+            onContentChange={
+              setContent
+            }
             onCreate={addIdea}
           />
 
           <ExplorerPanel
             nodes={nodes}
-            selectedNodeId={selectedNodeId}
-            onSelectNode={setSelectedNodeId}
+            selectedNodeId={
+              selectedNodeId
+            }
+            onSelectNode={
+              setSelectedNodeId
+            }
           />
         </>
       }
+
       graph={
         <GraphWorkspace
           nodes={flowNodes}
           edges={flowEdges}
-          onNodeDragStop={handleNodeDragStop}
-          onConnect={handleConnect}
-          onNodeClick={handleNodeClick}
+          onNodeDragStop={
+            handleNodeDragStop
+          }
+          onConnect={
+            handleConnect
+          }
+          onNodeClick={
+            handleNodeClick
+          }
+          onEdgeClick={
+            handleEdgeClick
+          }
         />
       }
+
       inspector={
-        <InspectorPanel node={selectedNode} />
+       <InspectorPanel
+  node={selectedNode}
+  edge={selectedEdge}
+/>
       }
     />
   );

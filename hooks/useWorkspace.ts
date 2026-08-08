@@ -6,9 +6,11 @@ import {
   useMemo,
   useState,
 } from "react";
+
 import type {
   Connection,
   Edge as FlowEdge,
+  EdgeMouseHandler,
   Node as FlowNode,
   NodeMouseHandler,
   OnNodeDrag,
@@ -43,9 +45,16 @@ export interface WorkspaceEdge {
   source_node_id: string;
   target_node_id: string;
   type: string;
+  strength: number;
+  confidence: number;
+  description: string | null;
+  evidence: unknown[];
+  metadata: Record<string, unknown>;
 }
 
-export function useWorkspace(universeId: string) {
+export function useWorkspace(
+  universeId: string
+) {
   const [universe, setUniverse] =
     useState<WorkspaceUniverse | null>(null);
 
@@ -58,155 +67,243 @@ export function useWorkspace(universeId: string) {
   const [edges, setEdges] =
     useState<WorkspaceEdge[]>([]);
 
-  const [selectedNodeId, setSelectedNodeId] =
-    useState<string | null>(null);
+  const [
+    selectedNodeId,
+    setSelectedNodeId,
+  ] = useState<string | null>(null);
+
+  const [
+    selectedEdgeId,
+    setSelectedEdgeId,
+  ] = useState<string | null>(null);
 
   const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
+  const [content, setContent] =
+    useState("");
   const [isCreating, setIsCreating] =
     useState(false);
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] =
+    useState(true);
 
-  const [errorMessage, setErrorMessage] =
-    useState("");
+  const [
+    errorMessage,
+    setErrorMessage,
+  ] = useState("");
 
-  const loadWorkspace = useCallback(async () => {
-    setLoading(true);
-    setErrorMessage("");
+  const loadWorkspace =
+    useCallback(async () => {
+      setLoading(true);
+      setErrorMessage("");
 
-    const {
-      data: universeData,
-      error: universeError,
-    } = await supabase
-      .from("universes")
-      .select("id, title, description")
-      .eq("id", universeId)
-      .maybeSingle();
+      const {
+        data: universeData,
+        error: universeError,
+      } = await supabase
+        .from("universes")
+        .select(
+          "id, title, description"
+        )
+        .eq("id", universeId)
+        .maybeSingle();
 
-    if (universeError || !universeData) {
-      setErrorMessage(
-        universeError?.message ??
-          "Universo no encontrado."
+      if (
+        universeError ||
+        !universeData
+      ) {
+        setErrorMessage(
+          universeError?.message ??
+            "Universo no encontrado."
+        );
+
+        setLoading(false);
+        return;
+      }
+
+      const {
+        data: graphData,
+        error: graphError,
+      } = await supabase
+        .from("graphs")
+        .select("id")
+        .eq(
+          "universe_id",
+          universeId
+        )
+        .maybeSingle();
+
+      if (graphError || !graphData) {
+        setErrorMessage(
+          graphError?.message ??
+            "Grafo no encontrado."
+        );
+
+        setLoading(false);
+        return;
+      }
+
+      const {
+        data: nodeData,
+        error: nodeError,
+      } = await supabase
+        .from("nodes")
+        .select(
+          "id, title, content, status, position_x, position_y"
+        )
+        .eq(
+          "universe_id",
+          universeId
+        )
+        .order("created_at", {
+          ascending: true,
+        });
+
+      if (nodeError) {
+        setErrorMessage(
+          nodeError.message
+        );
+
+        setLoading(false);
+        return;
+      }
+
+      const {
+        data: edgeData,
+        error: edgeError,
+      } = await supabase
+        .from("edges")
+        .select(
+          "id, source_node_id, target_node_id, type, strength, confidence, description, evidence, metadata"
+        )
+        .eq(
+          "universe_id",
+          universeId
+        );
+
+      if (edgeError) {
+        setErrorMessage(
+          edgeError.message
+        );
+
+        setLoading(false);
+        return;
+      }
+
+      setUniverse(universeData);
+      setGraph(graphData);
+      setNodes(
+        (nodeData ?? []) as WorkspaceNode[]
       );
-      setLoading(false);
-      return;
-    }
-
-    const {
-      data: graphData,
-      error: graphError,
-    } = await supabase
-      .from("graphs")
-      .select("id")
-      .eq("universe_id", universeId)
-      .maybeSingle();
-
-    if (graphError || !graphData) {
-      setErrorMessage(
-        graphError?.message ??
-          "Grafo no encontrado."
+      setEdges(
+        (edgeData ?? []) as WorkspaceEdge[]
       );
+
       setLoading(false);
-      return;
-    }
-
-    const {
-      data: nodeData,
-      error: nodeError,
-    } = await supabase
-      .from("nodes")
-      .select(
-        "id, title, content, status, position_x, position_y"
-      )
-      .eq("universe_id", universeId)
-      .order("created_at", {
-        ascending: true,
-      });
-
-    if (nodeError) {
-      setErrorMessage(nodeError.message);
-      setLoading(false);
-      return;
-    }
-
-    const {
-      data: edgeData,
-      error: edgeError,
-    } = await supabase
-      .from("edges")
-      .select(
-        "id, source_node_id, target_node_id, type"
-      )
-      .eq("universe_id", universeId);
-
-    if (edgeError) {
-      setErrorMessage(edgeError.message);
-      setLoading(false);
-      return;
-    }
-
-    setUniverse(universeData);
-    setGraph(graphData);
-    setNodes(nodeData ?? []);
-    setEdges(edgeData ?? []);
-    setLoading(false);
-  }, [universeId]);
+    }, [universeId]);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      void loadWorkspace();
-    }, 0);
+    const timer =
+      window.setTimeout(() => {
+        void loadWorkspace();
+      }, 0);
 
-    return () => {
+    return () =>
       window.clearTimeout(timer);
-    };
   }, [loadWorkspace]);
 
-  const flowNodes = useMemo<FlowNode[]>(
-    () =>
-      nodes.map((node, index) => ({
-        id: node.id,
-        type: "helix",
-        position: {
-          x:
-            node.position_x === 0
-              ? (index % 3) * 280
-              : node.position_x,
-          y:
-            node.position_y === 0
-              ? Math.floor(index / 3) * 180
-              : node.position_y,
-        },
-        data: {
-          label: node.title,
-          status: node.status,
-        },
-      })),
-    [nodes]
-  );
+  const flowNodes =
+    useMemo<FlowNode[]>(
+      () =>
+        nodes.map(
+          (node, index) => ({
+            id: node.id,
+            type: "helix",
 
-  const flowEdges = useMemo<FlowEdge[]>(
-    () =>
-      edges.map((edge) => ({
-        id: edge.id,
-        source: edge.source_node_id,
-        target: edge.target_node_id,
-        label: edge.type,
-      })),
-    [edges]
-  );
+            position: {
+              x:
+                node.position_x === 0
+                  ? (index % 3) * 280
+                  : node.position_x,
 
-  const selectedNode = useMemo(
-    () =>
-      nodes.find(
-        (node) => node.id === selectedNodeId
-      ) ?? null,
-    [nodes, selectedNodeId]
-  );
+              y:
+                node.position_y === 0
+                  ? Math.floor(
+                      index / 3
+                    ) * 180
+                  : node.position_y,
+            },
+
+            data: {
+              label: node.title,
+              status: node.status,
+            },
+          })
+        ),
+      [nodes]
+    );
+
+  const flowEdges =
+    useMemo<FlowEdge[]>(
+      () =>
+        edges.map((edge) => ({
+          id: edge.id,
+
+          source:
+            edge.source_node_id,
+
+          target:
+            edge.target_node_id,
+
+          label: `${
+            edge.type
+          } · ${(
+            edge.confidence * 100
+          ).toFixed(0)}%`,
+
+          data: {
+            type: edge.type,
+            strength:
+              edge.strength,
+            confidence:
+              edge.confidence,
+            description:
+              edge.description,
+            evidence:
+              edge.evidence,
+            metadata:
+              edge.metadata,
+          },
+        })),
+      [edges]
+    );
+
+  const selectedNode =
+    useMemo(
+      () =>
+        nodes.find(
+          (node) =>
+            node.id ===
+            selectedNodeId
+        ) ?? null,
+      [nodes, selectedNodeId]
+    );
+
+  const selectedEdge =
+    useMemo(
+      () =>
+        edges.find(
+          (edge) =>
+            edge.id ===
+            selectedEdgeId
+        ) ?? null,
+      [edges, selectedEdgeId]
+    );
 
   async function addIdea() {
-    if (!graph || !title.trim()) {
+    if (
+      !graph ||
+      !title.trim()
+    ) {
       return;
     }
 
@@ -235,18 +332,38 @@ export function useWorkspace(universeId: string) {
     }
   }
 
-  function selectNode(nodeId: string) {
+  function selectNode(
+    nodeId: string
+  ) {
     setSelectedNodeId(nodeId);
+    setSelectedEdgeId(null);
   }
 
-  const handleNodeClick: NodeMouseHandler = (
+  function selectEdge(
+    edgeId: string
+  ) {
+    setSelectedEdgeId(edgeId);
+    setSelectedNodeId(null);
+  }
+
+  const handleNodeClick:
+    NodeMouseHandler = (
     _,
     node
   ) => {
     selectNode(node.id);
   };
 
-  const handleNodeDragStop: OnNodeDrag = (
+  const handleEdgeClick:
+    EdgeMouseHandler = (
+    _,
+    edge
+  ) => {
+    selectEdge(edge.id);
+  };
+
+  const handleNodeDragStop:
+    OnNodeDrag = (
     _,
     node
   ) => {
@@ -256,59 +373,73 @@ export function useWorkspace(universeId: string) {
         node.position.x,
         node.position.y
       )
-      .catch((error: unknown) => {
-        console.error(
-          "No se pudo guardar la posición:",
-          error
-        );
-      });
+      .catch(
+        (error: unknown) => {
+          console.error(
+            "No se pudo guardar la posición:",
+            error
+          );
+        }
+      );
   };
+
   async function handleConnect(
-  connection: Connection
-) {
-  const source = connection.source;
-  const target = connection.target;
+    connection: Connection
+  ) {
+    const source =
+      connection.source;
 
-  if (!source || !target) {
-    return;
+    const target =
+      connection.target;
+
+    if (!source || !target) {
+      return;
+    }
+
+    if (source === target) {
+      alert(
+        "No puedes conectar una idea consigo misma."
+      );
+      return;
+    }
+
+    const alreadyExists =
+      edges.some(
+        (edge) =>
+          edge.source_node_id ===
+            source &&
+          edge.target_node_id ===
+            target &&
+          edge.type === "inspira"
+      );
+
+    if (alreadyExists) {
+      alert(
+        "Esta conexión ya existe."
+      );
+      return;
+    }
+
+    try {
+      await universeService.connectIdeas(
+        universeId,
+        source,
+        target,
+        "inspira",
+        1,
+        1,
+        null
+      );
+
+      await loadWorkspace();
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : "No se pudo crear la conexión."
+      );
+    }
   }
-
-  if (source === target) {
-    alert(
-      "No puedes conectar una idea consigo misma."
-    );
-    return;
-  }
-
-  const alreadyExists = edges.some(
-    (edge) =>
-      edge.source_node_id === source &&
-      edge.target_node_id === target &&
-      edge.type === "inspira"
-  );
-
-  if (alreadyExists) {
-    alert("Esta conexión ya existe.");
-    return;
-  }
-
-  try {
-    await universeService.connectIdeas(
-      universeId,
-      source,
-      target,
-      "inspira"
-    );
-
-    await loadWorkspace();
-  } catch (error) {
-    alert(
-      error instanceof Error
-        ? error.message
-        : "No se pudo crear la conexión."
-    );
-  }
-}
 
   return {
     universe,
@@ -324,6 +455,11 @@ export function useWorkspace(universeId: string) {
     setSelectedNodeId,
     selectNode,
 
+    selectedEdge,
+    selectedEdgeId,
+    setSelectedEdgeId,
+    selectEdge,
+
     title,
     content,
     isCreating,
@@ -337,6 +473,7 @@ export function useWorkspace(universeId: string) {
 
     handleNodeDragStop,
     handleNodeClick,
+    handleEdgeClick,
     handleConnect,
   };
 }
