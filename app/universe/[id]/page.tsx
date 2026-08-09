@@ -9,6 +9,7 @@ import ExplorerPanel from "@/components/panels/ExplorerPanel";
 import InspectorPanel from "@/components/panels/InspectorPanel";
 import UniverseHeader from "@/components/universes/UniverseHeader";
 import { useWorkspace } from "@/hooks/useWorkspace";
+import CreateRelationPanel from "@/components/panels/CreateRelationPanel";
 
 export default function UniversePage() {
   const params = useParams<{ id: string }>();
@@ -76,6 +77,24 @@ export default function UniversePage() {
     handleNodeClick,
     handleEdgeClick,
     handleConnect,
+    pendingConnection,
+
+pendingRelationType,
+setPendingRelationType,
+
+pendingRelationStrength,
+setPendingRelationStrength,
+
+pendingRelationConfidence,
+setPendingRelationConfidence,
+
+pendingRelationDescription,
+setPendingRelationDescription,
+
+isCreatingRelation,
+
+createPendingRelation,
+cancelPendingRelation,
   } = useWorkspace(params.id);
 
   if (loading) {
@@ -143,48 +162,69 @@ export default function UniversePage() {
         />
       }
 
-      inspector={
-        <InspectorPanel
-          node={selectedNode}
-          edge={selectedEdge}
+     inspector={
+  pendingConnection ? (
+    <CreateRelationPanel
+      relationType={pendingRelationType}
+      onRelationTypeChange={setPendingRelationType}
 
-          nodeTitle={nodeTitle}
-          onNodeTitleChange={setNodeTitle}
+      strength={pendingRelationStrength}
+      onStrengthChange={setPendingRelationStrength}
 
-          nodeContent={nodeContent}
-          onNodeContentChange={setNodeContent}
+      confidence={pendingRelationConfidence}
+      onConfidenceChange={setPendingRelationConfidence}
 
-          nodeStatus={nodeStatus}
-          onNodeStatusChange={setNodeStatus}
+      description={pendingRelationDescription}
+      onDescriptionChange={setPendingRelationDescription}
 
-          nodePriority={nodePriority}
-          onNodePriorityChange={setNodePriority}
+      isCreating={isCreatingRelation}
 
-          isUpdatingNode={isUpdatingNode}
-          onUpdateNode={updateSelectedNode}
+      onCreate={createPendingRelation}
+      onCancel={cancelPendingRelation}
+    />
+  ) : (
+    <InspectorPanel
+      node={selectedNode}
+      edge={selectedEdge}
 
-          edgeType={edgeType}
-          onEdgeTypeChange={setEdgeType}
+      nodeTitle={nodeTitle}
+      onNodeTitleChange={setNodeTitle}
 
-          edgeStrength={edgeStrength}
-          onEdgeStrengthChange={setEdgeStrength}
+      nodeContent={nodeContent}
+      onNodeContentChange={setNodeContent}
 
-          edgeConfidence={edgeConfidence}
-          onEdgeConfidenceChange={setEdgeConfidence}
+      nodeStatus={nodeStatus}
+      onNodeStatusChange={setNodeStatus}
 
-          edgeDescription={edgeDescription}
-          onEdgeDescriptionChange={setEdgeDescription}
+      nodePriority={nodePriority}
+      onNodePriorityChange={setNodePriority}
 
-          isUpdatingEdge={isUpdatingEdge}
-          onUpdateEdge={updateSelectedEdge}
+      isUpdatingNode={isUpdatingNode}
+      onUpdateNode={updateSelectedNode}
 
-          evidenceText={evidenceText}
-          onEvidenceTextChange={setEvidenceText}
+      edgeType={edgeType}
+      onEdgeTypeChange={setEdgeType}
 
-          isAddingEvidence={isAddingEvidence}
-          onAddEvidence={addEvidenceToSelectedEdge}
-        />
-      }
+      edgeStrength={edgeStrength}
+      onEdgeStrengthChange={setEdgeStrength}
+
+      edgeConfidence={edgeConfidence}
+      onEdgeConfidenceChange={setEdgeConfidence}
+
+      edgeDescription={edgeDescription}
+      onEdgeDescriptionChange={setEdgeDescription}
+
+      isUpdatingEdge={isUpdatingEdge}
+      onUpdateEdge={updateSelectedEdge}
+
+      evidenceText={evidenceText}
+      onEvidenceTextChange={setEvidenceText}
+
+      isAddingEvidence={isAddingEvidence}
+      onAddEvidence={addEvidenceToSelectedEdge}
+    />
+  )
+}
     />
   );
 }

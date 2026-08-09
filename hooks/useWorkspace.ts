@@ -75,6 +75,12 @@ export function useWorkspace(
   const [edges, setEdges] =
     useState<WorkspaceEdge[]>([]);
 
+  /*
+   * =========================
+   * SELECCIÓN
+   * =========================
+   */
+
   const [
     selectedNodeId,
     setSelectedNodeId,
@@ -87,15 +93,32 @@ export function useWorkspace(
 
   /*
    * =========================
+   * KE-004
+   * CONEXIÓN PENDIENTE
+   * =========================
+   */
+
+  const [
+    pendingConnection,
+    setPendingConnection,
+  ] = useState<Connection | null>(null);
+
+  /*
+   * =========================
    * CREAR IDEA
    * =========================
    */
 
-  const [title, setTitle] = useState("");
+  const [title, setTitle] =
+    useState("");
+
   const [content, setContent] =
     useState("");
-  const [isCreating, setIsCreating] =
-    useState(false);
+
+  const [
+    isCreating,
+    setIsCreating,
+  ] = useState(false);
 
   /*
    * =========================
@@ -103,17 +126,25 @@ export function useWorkspace(
    * =========================
    */
 
-  const [nodeTitle, setNodeTitle] =
-    useState("");
+  const [
+    nodeTitle,
+    setNodeTitle,
+  ] = useState("");
 
-  const [nodeContent, setNodeContent] =
-    useState("");
+  const [
+    nodeContent,
+    setNodeContent,
+  ] = useState("");
 
-  const [nodeStatus, setNodeStatus] =
-    useState("IDEA");
+  const [
+    nodeStatus,
+    setNodeStatus,
+  ] = useState("IDEA");
 
-  const [nodePriority, setNodePriority] =
-    useState(0);
+  const [
+    nodePriority,
+    setNodePriority,
+  ] = useState(0);
 
   const [
     isUpdatingNode,
@@ -126,8 +157,10 @@ export function useWorkspace(
    * =========================
    */
 
-  const [edgeType, setEdgeType] =
-    useState("inspira");
+  const [
+    edgeType,
+    setEdgeType,
+  ] = useState("inspira");
 
   const [
     edgeStrength,
@@ -147,6 +180,38 @@ export function useWorkspace(
   const [
     isUpdatingEdge,
     setIsUpdatingEdge,
+  ] = useState(false);
+
+  /*
+   * =========================
+   * KE-004
+   * NUEVA RELACIÓN
+   * =========================
+   */
+
+  const [
+    pendingRelationType,
+    setPendingRelationType,
+  ] = useState("inspira");
+
+  const [
+    pendingRelationStrength,
+    setPendingRelationStrength,
+  ] = useState(1);
+
+  const [
+    pendingRelationConfidence,
+    setPendingRelationConfidence,
+  ] = useState(1);
+
+  const [
+    pendingRelationDescription,
+    setPendingRelationDescription,
+  ] = useState("");
+
+  const [
+    isCreatingRelation,
+    setIsCreatingRelation,
   ] = useState(false);
 
   /*
@@ -171,8 +236,10 @@ export function useWorkspace(
    * =========================
    */
 
-  const [loading, setLoading] =
-    useState(true);
+  const [
+    loading,
+    setLoading,
+  ] = useState(true);
 
   const [
     errorMessage,
@@ -198,7 +265,10 @@ export function useWorkspace(
         .select(
           "id, title, description"
         )
-        .eq("id", universeId)
+        .eq(
+          "id",
+          universeId
+        )
         .maybeSingle();
 
       if (
@@ -226,7 +296,10 @@ export function useWorkspace(
         )
         .maybeSingle();
 
-      if (graphError || !graphData) {
+      if (
+        graphError ||
+        !graphData
+      ) {
         setErrorMessage(
           graphError?.message ??
             "Grafo no encontrado."
@@ -248,9 +321,12 @@ export function useWorkspace(
           "universe_id",
           universeId
         )
-        .order("created_at", {
-          ascending: true,
-        });
+        .order(
+          "created_at",
+          {
+            ascending: true,
+          }
+        );
 
       if (nodeError) {
         setErrorMessage(
@@ -283,8 +359,13 @@ export function useWorkspace(
         return;
       }
 
-      setUniverse(universeData);
-      setGraph(graphData);
+      setUniverse(
+        universeData
+      );
+
+      setGraph(
+        graphData
+      );
 
       setNodes(
         (nodeData ?? []) as WorkspaceNode[]
@@ -305,12 +386,17 @@ export function useWorkspace(
 
   useEffect(() => {
     const timer =
-      window.setTimeout(() => {
-        void loadWorkspace();
-      }, 0);
+      window.setTimeout(
+        () => {
+          void loadWorkspace();
+        },
+        0
+      );
 
     return () => {
-      window.clearTimeout(timer);
+      window.clearTimeout(
+        timer
+      );
     };
   }, [loadWorkspace]);
 
@@ -324,28 +410,43 @@ export function useWorkspace(
     useMemo<FlowNode[]>(
       () =>
         nodes.map(
-          (node, index) => ({
+          (
+            node,
+            index
+          ) => ({
             id: node.id,
+
             type: "helix",
 
             position: {
               x:
-                node.position_x === 0
-                  ? (index % 3) * 280
+                node.position_x ===
+                0
+                  ? (index %
+                      3) *
+                    280
                   : node.position_x,
 
               y:
-                node.position_y === 0
+                node.position_y ===
+                0
                   ? Math.floor(
-                      index / 3
-                    ) * 180
+                      index /
+                        3
+                    ) *
+                    180
                   : node.position_y,
             },
 
             data: {
-              label: node.title,
-              status: node.status,
-              priority: node.priority,
+              label:
+                node.title,
+
+              status:
+                node.status,
+
+              priority:
+                node.priority,
             },
           })
         ),
@@ -362,112 +463,142 @@ export function useWorkspace(
   const flowEdges =
     useMemo<FlowEdge[]>(
       () =>
-        edges.map((edge) => {
-          const confidence =
-            Math.max(
-              0,
-              Math.min(
-                1,
-                edge.confidence
-              )
-            );
+        edges.map(
+          (edge) => {
+            const confidence =
+              Math.max(
+                0,
+                Math.min(
+                  1,
+                  edge.confidence
+                )
+              );
 
-          const strength =
-            Math.max(
-              0,
-              Math.min(
-                1,
-                edge.strength
-              )
-            );
+            const strength =
+              Math.max(
+                0,
+                Math.min(
+                  1,
+                  edge.strength
+                )
+              );
 
-          const strokeWidth =
-            1.5 +
-            strength * 4;
+            const strokeWidth =
+              1.5 +
+              strength * 4;
 
-          const opacity =
-            0.25 +
-            confidence * 0.75;
+            const opacity =
+              0.25 +
+              confidence *
+                0.75;
 
-          const relationStyle =
-            edge.type === "contradice"
-              ? {
-                  stroke: "#ef4444",
-                  strokeDasharray:
-                    "8 6",
-                }
-              : edge.type === "demuestra"
+            const relationStyle =
+              edge.type ===
+              "contradice"
                 ? {
-                    stroke: "#22c55e",
+                    stroke:
+                      "#ef4444",
+
+                    strokeDasharray:
+                      "8 6",
                   }
-                : edge.type === "causa"
+
+                : edge.type ===
+                    "demuestra"
+                  ? {
+                      stroke:
+                        "#22c55e",
+                    }
+
+                : edge.type ===
+                    "causa"
                   ? {
                       stroke:
                         "#f59e0b",
                     }
-                  : edge.type ===
-                      "depende_de"
-                    ? {
-                        stroke:
-                          "#3b82f6",
-                        strokeDasharray:
-                          "4 4",
-                      }
-                    : edge.type ===
-                        "complementa"
-                      ? {
-                          stroke:
-                            "#a855f7",
-                        }
-                      : {
-                          stroke:
-                            "#22d3ee",
-                        };
 
-          return {
-            id: edge.id,
+                : edge.type ===
+                    "depende_de"
+                  ? {
+                      stroke:
+                        "#3b82f6",
 
-            source:
-              edge.source_node_id,
+                      strokeDasharray:
+                        "4 4",
+                    }
 
-            target:
-              edge.target_node_id,
+                : edge.type ===
+                    "complementa"
+                  ? {
+                      stroke:
+                        "#a855f7",
+                    }
 
-            label: `${
-              edge.type
-            } · ${(
-              confidence * 100
-            ).toFixed(0)}%`,
+                : {
+                    stroke:
+                      "#22d3ee",
+                  };
 
-            animated:
-              strength >= 0.8,
+            return {
+              id: edge.id,
 
-            style: {
-              ...relationStyle,
-              strokeWidth,
-              opacity,
-            },
+              source:
+                edge.source_node_id,
 
-            labelStyle: {
-              fill: "#d4d4d8",
-              fontSize: 12,
-            },
+              target:
+                edge.target_node_id,
 
-            data: {
-              type: edge.type,
-              strength:
-                edge.strength,
-              confidence:
-                edge.confidence,
-              description:
-                edge.description,
-              evidence:
-                edge.evidence,
-              metadata:
-                edge.metadata,
-            },
-          };
-        }),
+              label: `${
+                edge.type
+              } · ${(
+                confidence *
+                100
+              ).toFixed(
+                0
+              )}%`,
+
+              animated:
+                strength >=
+                0.8,
+
+              style: {
+                ...relationStyle,
+
+                strokeWidth,
+
+                opacity,
+              },
+
+              labelStyle: {
+                fill:
+                  "#d4d4d8",
+
+                fontSize:
+                  12,
+              },
+
+              data: {
+                type:
+                  edge.type,
+
+                strength:
+                  edge.strength,
+
+                confidence:
+                  edge.confidence,
+
+                description:
+                  edge.description,
+
+                evidence:
+                  edge.evidence,
+
+                metadata:
+                  edge.metadata,
+              },
+            };
+          }
+        ),
 
       [edges]
     );
@@ -487,7 +618,10 @@ export function useWorkspace(
             selectedNodeId
         ) ?? null,
 
-      [nodes, selectedNodeId]
+      [
+        nodes,
+        selectedNodeId,
+      ]
     );
 
   const selectedEdge =
@@ -499,7 +633,10 @@ export function useWorkspace(
             selectedEdgeId
         ) ?? null,
 
-      [edges, selectedEdgeId]
+      [
+        edges,
+        selectedEdgeId,
+      ]
     );
 
   /*
@@ -517,7 +654,9 @@ export function useWorkspace(
     }
 
     try {
-      setIsCreating(true);
+      setIsCreating(
+        true
+      );
 
       await universeService.addIdea(
         universeId,
@@ -532,12 +671,15 @@ export function useWorkspace(
       await loadWorkspace();
     } catch (error) {
       alert(
-        error instanceof Error
+        error instanceof
+          Error
           ? error.message
           : "No se pudo crear la idea."
       );
     } finally {
-      setIsCreating(false);
+      setIsCreating(
+        false
+      );
     }
   }
 
@@ -550,21 +692,44 @@ export function useWorkspace(
   function selectNode(
     nodeId: string
   ) {
-    const node = nodes.find(
-      (item) => item.id === nodeId
-    );
+    const node =
+      nodes.find(
+        (item) =>
+          item.id ===
+          nodeId
+      );
 
     if (!node) {
       return;
     }
 
-    setSelectedNodeId(nodeId);
-    setSelectedEdgeId(null);
+    setSelectedNodeId(
+      nodeId
+    );
 
-    setNodeTitle(node.title);
-    setNodeContent(node.content);
-    setNodeStatus(node.status);
-    setNodePriority(node.priority);
+    setSelectedEdgeId(
+      null
+    );
+
+    setPendingConnection(
+      null
+    );
+
+    setNodeTitle(
+      node.title
+    );
+
+    setNodeContent(
+      node.content
+    );
+
+    setNodeStatus(
+      node.status
+    );
+
+    setNodePriority(
+      node.priority
+    );
   }
 
   /*
@@ -576,27 +741,49 @@ export function useWorkspace(
   function selectEdge(
     edgeId: string
   ) {
-    const edge = edges.find(
-      (item) => item.id === edgeId
-    );
+    const edge =
+      edges.find(
+        (item) =>
+          item.id ===
+          edgeId
+      );
 
     if (!edge) {
       return;
     }
 
-    setSelectedEdgeId(edgeId);
-    setSelectedNodeId(null);
+    setSelectedEdgeId(
+      edgeId
+    );
 
-    setEdgeType(edge.type);
-    setEdgeStrength(edge.strength);
+    setSelectedNodeId(
+      null
+    );
+
+    setPendingConnection(
+      null
+    );
+
+    setEdgeType(
+      edge.type
+    );
+
+    setEdgeStrength(
+      edge.strength
+    );
+
     setEdgeConfidence(
       edge.confidence
     );
+
     setEdgeDescription(
-      edge.description ?? ""
+      edge.description ??
+        ""
     );
 
-    setEvidenceText("");
+    setEvidenceText(
+      ""
+    );
   }
 
   /*
@@ -610,7 +797,9 @@ export function useWorkspace(
     _,
     node
   ) => {
-    selectNode(node.id);
+    selectNode(
+      node.id
+    );
   };
 
   /*
@@ -624,7 +813,9 @@ export function useWorkspace(
     _,
     edge
   ) => {
-    selectEdge(edge.id);
+    selectEdge(
+      edge.id
+    );
   };
 
   /*
@@ -645,7 +836,10 @@ export function useWorkspace(
         node.position.y
       )
       .catch(
-        (error: unknown) => {
+        (
+          error:
+            unknown
+        ) => {
           console.error(
             "No se pudo guardar la posición:",
             error
@@ -656,11 +850,12 @@ export function useWorkspace(
 
   /*
    * =========================
-   * CONECTAR NODOS
+   * KE-004
+   * CONEXIÓN PENDIENTE
    * =========================
    */
 
-  async function handleConnect(
+  function handleConnect(
     connection: Connection
   ) {
     const source =
@@ -669,11 +864,16 @@ export function useWorkspace(
     const target =
       connection.target;
 
-    if (!source || !target) {
+    if (
+      !source ||
+      !target
+    ) {
       return;
     }
 
-    if (source === target) {
+    if (
+      source === target
+    ) {
       alert(
         "No puedes conectar una idea consigo misma."
       );
@@ -681,43 +881,79 @@ export function useWorkspace(
       return;
     }
 
+    /*
+     * Por ahora evitamos
+     * más de una conexión
+     * directa entre el mismo
+     * origen y destino.
+     *
+     * Más adelante podemos
+     * permitir varias si tienen
+     * semánticas distintas.
+     */
+
     const alreadyExists =
       edges.some(
         (edge) =>
           edge.source_node_id ===
             source &&
           edge.target_node_id ===
-            target &&
-          edge.type === "inspira"
+            target
       );
 
     if (alreadyExists) {
       alert(
-        "Esta conexión ya existe."
+        "Ya existe una conexión entre estas ideas."
       );
 
       return;
     }
 
-    try {
-      await universeService.connectIdeas(
-        universeId,
-        source,
-        target,
-        "inspira",
-        1,
-        1,
-        null
-      );
+    /*
+     * NO guardamos todavía
+     * en Supabase.
+     *
+     * Dejamos la conexión
+     * esperando confirmación.
+     */
 
-      await loadWorkspace();
-    } catch (error) {
-      alert(
-        error instanceof Error
-          ? error.message
-          : "No se pudo crear la conexión."
-      );
-    }
+    setPendingConnection(
+      connection
+    );
+
+    /*
+     * Valores iniciales
+     * del futuro editor.
+     */
+
+    setPendingRelationType(
+      "inspira"
+    );
+
+    setPendingRelationStrength(
+      1
+    );
+
+    setPendingRelationConfidence(
+      1
+    );
+
+    setPendingRelationDescription(
+      ""
+    );
+
+    /*
+     * Limpiamos selección
+     * anterior.
+     */
+
+    setSelectedNodeId(
+      null
+    );
+
+    setSelectedEdgeId(
+      null
+    );
   }
 
   /*
@@ -727,12 +963,16 @@ export function useWorkspace(
    */
 
   async function updateSelectedEdge() {
-    if (!selectedEdge) {
+    if (
+      !selectedEdge
+    ) {
       return;
     }
 
     try {
-      setIsUpdatingEdge(true);
+      setIsUpdatingEdge(
+        true
+      );
 
       await universeService.updateEdge(
         selectedEdge.id,
@@ -748,12 +988,15 @@ export function useWorkspace(
       await loadWorkspace();
     } catch (error) {
       alert(
-        error instanceof Error
+        error instanceof
+          Error
           ? error.message
           : "No se pudo actualizar la relación."
       );
     } finally {
-      setIsUpdatingEdge(false);
+      setIsUpdatingEdge(
+        false
+      );
     }
   }
 
@@ -764,31 +1007,42 @@ export function useWorkspace(
    */
 
   async function addEvidenceToSelectedEdge() {
-    if (!selectedEdge) {
+    if (
+      !selectedEdge
+    ) {
       return;
     }
 
     const cleanEvidence =
       evidenceText.trim();
 
-    if (!cleanEvidence) {
+    if (
+      !cleanEvidence
+    ) {
       return;
     }
 
     try {
-      setIsAddingEvidence(true);
+      setIsAddingEvidence(
+        true
+      );
 
       const nextEvidence:
-        WorkspaceEvidence[] = [
-        ...selectedEdge.evidence,
-        {
-          type: "note",
-          content:
-            cleanEvidence,
-          created_at:
-            new Date().toISOString(),
-        },
-      ];
+        WorkspaceEvidence[] =
+        [
+          ...selectedEdge.evidence,
+
+          {
+            type:
+              "note",
+
+            content:
+              cleanEvidence,
+
+            created_at:
+              new Date().toISOString(),
+          },
+        ];
 
       await universeService.updateEdge(
         selectedEdge.id,
@@ -801,17 +1055,22 @@ export function useWorkspace(
         selectedEdge.metadata
       );
 
-      setEvidenceText("");
+      setEvidenceText(
+        ""
+      );
 
       await loadWorkspace();
     } catch (error) {
       alert(
-        error instanceof Error
+        error instanceof
+          Error
           ? error.message
           : "No se pudo agregar la evidencia."
       );
     } finally {
-      setIsAddingEvidence(false);
+      setIsAddingEvidence(
+        false
+      );
     }
   }
 
@@ -822,12 +1081,16 @@ export function useWorkspace(
    */
 
   async function updateSelectedNode() {
-    if (!selectedNode) {
+    if (
+      !selectedNode
+    ) {
       return;
     }
 
     try {
-      setIsUpdatingNode(true);
+      setIsUpdatingNode(
+        true
+      );
 
       await universeService.updateNode(
         selectedNode.id,
@@ -841,12 +1104,15 @@ export function useWorkspace(
       await loadWorkspace();
     } catch (error) {
       alert(
-        error instanceof Error
+        error instanceof
+          Error
           ? error.message
           : "No se pudo actualizar el nodo."
       );
     } finally {
-      setIsUpdatingNode(false);
+      setIsUpdatingNode(
+        false
+      );
     }
   }
 
@@ -856,14 +1122,74 @@ export function useWorkspace(
    * =========================
    */
 
+ async function createPendingRelation() {
+  if (!pendingConnection) {
+    return;
+  }
+
+  const source = pendingConnection.source;
+  const target = pendingConnection.target;
+
+  if (!source || !target) {
+    return;
+  }
+
+  try {
+    setIsCreatingRelation(true);
+
+    await universeService.connectIdeas(
+      universeId,
+      source,
+      target,
+      pendingRelationType,
+      pendingRelationStrength,
+      pendingRelationConfidence,
+      pendingRelationDescription.trim() || null
+    );
+
+    setPendingConnection(null);
+
+    setPendingRelationType("inspira");
+    setPendingRelationStrength(1);
+    setPendingRelationConfidence(1);
+    setPendingRelationDescription("");
+
+    await loadWorkspace();
+  } catch (error) {
+    alert(
+      error instanceof Error
+        ? error.message
+        : "No se pudo crear la relación."
+    );
+  } finally {
+    setIsCreatingRelation(false);
+  }
+}
+
+function cancelPendingRelation() {
+  setPendingConnection(null);
+
+  setPendingRelationType("inspira");
+  setPendingRelationStrength(1);
+  setPendingRelationConfidence(1);
+  setPendingRelationDescription("");
+}
   return {
     universe,
     graph,
     nodes,
     edges,
 
+    /*
+     * React Flow
+     */
+
     flowNodes,
     flowEdges,
+
+    /*
+     * Selección
+     */
 
     selectedNode,
     selectedNodeId,
@@ -875,12 +1201,45 @@ export function useWorkspace(
     setSelectedEdgeId,
     selectEdge,
 
+    /*
+     * KE-004
+     * conexión pendiente
+     */
+
+    pendingConnection,
+    setPendingConnection,
+
+    pendingRelationType,
+    setPendingRelationType,
+
+    pendingRelationStrength,
+    setPendingRelationStrength,
+
+    pendingRelationConfidence,
+    setPendingRelationConfidence,
+
+    pendingRelationDescription,
+    setPendingRelationDescription,
+
+    isCreatingRelation,
+
+    createPendingRelation,
+cancelPendingRelation,
+
+    /*
+     * Crear idea
+     */
+
     title,
     content,
     isCreating,
     setTitle,
     setContent,
     addIdea,
+
+    /*
+     * Editor nodo
+     */
 
     nodeTitle,
     setNodeTitle,
@@ -897,6 +1256,10 @@ export function useWorkspace(
     isUpdatingNode,
     updateSelectedNode,
 
+    /*
+     * Editor relación
+     */
+
     edgeType,
     setEdgeType,
 
@@ -912,14 +1275,27 @@ export function useWorkspace(
     isUpdatingEdge,
     updateSelectedEdge,
 
+    /*
+     * Evidencia
+     */
+
     evidenceText,
     setEvidenceText,
+
     isAddingEvidence,
     addEvidenceToSelectedEdge,
+
+    /*
+     * General
+     */
 
     loading,
     errorMessage,
     loadWorkspace,
+
+    /*
+     * Handlers
+     */
 
     handleNodeDragStop,
     handleNodeClick,
