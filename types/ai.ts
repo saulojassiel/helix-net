@@ -103,3 +103,42 @@ export interface ExpandIdeaInput {
 export interface ExpandIdeaResult {
   suggestions: AISuggestion[];
 }
+export type GraphInsightKind =
+  | "knowledge_gap"
+  | "potential_contradiction"
+  | "weak_node"
+  | "weak_relation"
+  | "missing_connection";
+
+export interface GraphInsight {
+  id: string;
+
+  kind: GraphInsightKind;
+
+  title: string;
+
+  description: string;
+
+  confidence: number;
+
+  relatedNodeIds: string[];
+
+  relatedEdgeIds: string[];
+
+  suggestedAction?: string;
+
+  metadata?: Record<string, unknown>;
+}
+
+export interface AnalyzeGraphInput {
+  universeId: string;
+
+  graphContext: {
+    nodes: GraphContextNode[];
+    edges: GraphContextEdge[];
+  };
+}
+
+export interface AnalyzeGraphResult {
+  insights: GraphInsight[];
+}

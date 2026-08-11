@@ -4,19 +4,31 @@ import { useParams } from "next/navigation";
 
 import GraphWorkspace from "@/components/graph/GraphWorkspace";
 import WorkspaceLayout from "@/components/layout/WorkspaceLayout";
+
 import { AddIdeaPanel } from "@/components/panels/AddIdeaPanel";
 import AISuggestionsPanel from "@/components/panels/AISuggestionsPanel";
 import CreateRelationPanel from "@/components/panels/CreateRelationPanel";
 import ExplorerPanel from "@/components/panels/ExplorerPanel";
 import GraphFiltersPanel from "@/components/panels/GraphFiltersPanel";
+import GraphInsightsPanel from "@/components/panels/GraphInsightsPanel";
 import InspectorPanel from "@/components/panels/InspectorPanel";
+
 import UniverseHeader from "@/components/universes/UniverseHeader";
+
 import { useWorkspace } from "@/hooks/useWorkspace";
 
 export default function UniversePage() {
-  const params = useParams<{ id: string }>();
+  const params = useParams<{
+    id: string;
+  }>();
 
   const {
+    /*
+     * =========================
+     * WORKSPACE
+     * =========================
+     */
+
     universe,
     graph,
 
@@ -160,7 +172,8 @@ export default function UniversePage() {
 
     /*
      * =========================
-     * AI-001
+     * AI-001 / AI-003
+     * EXPANSIÓN DE IDEAS
      * =========================
      */
 
@@ -193,6 +206,18 @@ export default function UniversePage() {
     startEditingAISuggestion,
     cancelEditingAISuggestion,
     saveEditedAISuggestion,
+
+    /*
+     * =========================
+     * AI-004
+     * GRAPH INTELLIGENCE
+     * =========================
+     */
+
+    graphInsights,
+    isAnalyzingGraph,
+    graphAnalysisError,
+    analyzeKnowledgeGraph,
 
     /*
      * =========================
@@ -261,150 +286,406 @@ export default function UniversePage() {
 
   return (
     <WorkspaceLayout
+      /*
+       * =========================
+       * HEADER
+       * =========================
+       */
+
       header={
         <UniverseHeader
           title={universe.title}
-          description={universe.description}
+          description={
+            universe.description
+          }
         />
       }
 
+      /*
+       * =========================
+       * COLUMNA IZQUIERDA
+       * =========================
+       */
+
       explorer={
-        <>
+        <div className="space-y-6">
           <AddIdeaPanel
             title={title}
             content={content}
             isCreating={isCreating}
-            onTitleChange={setTitle}
-            onContentChange={setContent}
-            onCreate={addIdea}
+            onTitleChange={
+              setTitle
+            }
+            onContentChange={
+              setContent
+            }
+            onCreate={
+              addIdea
+            }
           />
 
           <ExplorerPanel
             nodes={nodes}
-            selectedNodeId={selectedNodeId}
-            onSelectNode={setSelectedNodeId}
+            selectedNodeId={
+              selectedNodeId
+            }
+            onSelectNode={
+              setSelectedNodeId
+            }
           />
 
           <GraphFiltersPanel
-            nodeStatusFilter={nodeStatusFilter}
-            onNodeStatusFilterChange={setNodeStatusFilter}
+            nodeStatusFilter={
+              nodeStatusFilter
+            }
+            onNodeStatusFilterChange={
+              setNodeStatusFilter
+            }
 
-            minimumPriority={minimumPriority}
-            onMinimumPriorityChange={setMinimumPriority}
+            minimumPriority={
+              minimumPriority
+            }
+            onMinimumPriorityChange={
+              setMinimumPriority
+            }
 
-            relationTypeFilter={relationTypeFilter}
-            onRelationTypeFilterChange={setRelationTypeFilter}
+            relationTypeFilter={
+              relationTypeFilter
+            }
+            onRelationTypeFilterChange={
+              setRelationTypeFilter
+            }
 
-            minimumConfidence={minimumConfidence}
-            onMinimumConfidenceChange={setMinimumConfidence}
+            minimumConfidence={
+              minimumConfidence
+            }
+            onMinimumConfidenceChange={
+              setMinimumConfidence
+            }
 
-            minimumStrength={minimumStrength}
-            onMinimumStrengthChange={setMinimumStrength}
+            minimumStrength={
+              minimumStrength
+            }
+            onMinimumStrengthChange={
+              setMinimumStrength
+            }
 
-            visibleNodes={filteredNodes.length}
-            totalNodes={nodes.length}
+            visibleNodes={
+              filteredNodes.length
+            }
 
-            visibleEdges={filteredEdges.length}
-            totalEdges={edges.length}
+            totalNodes={
+              nodes.length
+            }
+
+            visibleEdges={
+              filteredEdges.length
+            }
+
+            totalEdges={
+              edges.length
+            }
           />
-        </>
+
+          <GraphInsightsPanel
+            insights={
+              graphInsights
+            }
+
+            isAnalyzing={
+              isAnalyzingGraph
+            }
+
+            errorMessage={
+              graphAnalysisError
+            }
+
+            totalNodes={
+              nodes.length
+            }
+
+            totalEdges={
+              edges.length
+            }
+
+            onAnalyze={
+              analyzeKnowledgeGraph
+            }
+          />
+        </div>
       }
+
+      /*
+       * =========================
+       * GRAFO CENTRAL
+       * =========================
+       */
 
       graph={
         <GraphWorkspace
           nodes={flowNodes}
           edges={flowEdges}
-          onNodeDragStop={handleNodeDragStop}
-          onConnect={handleConnect}
-          onNodeClick={handleNodeClick}
-          onEdgeClick={handleEdgeClick}
+
+          onNodeDragStop={
+            handleNodeDragStop
+          }
+
+          onConnect={
+            handleConnect
+          }
+
+          onNodeClick={
+            handleNodeClick
+          }
+
+          onEdgeClick={
+            handleEdgeClick
+          }
         />
       }
 
+      /*
+       * =========================
+       * COLUMNA DERECHA
+       * =========================
+       */
+
       inspector={
         pendingConnection ? (
+          /*
+           * =========================
+           * CREAR RELACIÓN
+           * =========================
+           */
+
           <CreateRelationPanel
-            relationType={pendingRelationType}
-            onRelationTypeChange={setPendingRelationType}
+            relationType={
+              pendingRelationType
+            }
 
-            strength={pendingRelationStrength}
-            onStrengthChange={setPendingRelationStrength}
+            onRelationTypeChange={
+              setPendingRelationType
+            }
 
-            confidence={pendingRelationConfidence}
-            onConfidenceChange={setPendingRelationConfidence}
+            strength={
+              pendingRelationStrength
+            }
 
-            description={pendingRelationDescription}
-            onDescriptionChange={setPendingRelationDescription}
+            onStrengthChange={
+              setPendingRelationStrength
+            }
 
-            isCreating={isCreatingRelation}
+            confidence={
+              pendingRelationConfidence
+            }
 
-            onCreate={createPendingRelation}
-            onCancel={cancelPendingRelation}
+            onConfidenceChange={
+              setPendingRelationConfidence
+            }
+
+            description={
+              pendingRelationDescription
+            }
+
+            onDescriptionChange={
+              setPendingRelationDescription
+            }
+
+            isCreating={
+              isCreatingRelation
+            }
+
+            onCreate={
+              createPendingRelation
+            }
+
+            onCancel={
+              cancelPendingRelation
+            }
           />
         ) : (
           <div className="space-y-6">
+            {/*
+             * =========================
+             * INSPECTOR
+             * =========================
+             */}
+
             <InspectorPanel
-              node={selectedNode}
-              edge={selectedEdge}
+              node={
+                selectedNode
+              }
 
-              nodeTitle={nodeTitle}
-              onNodeTitleChange={setNodeTitle}
+              edge={
+                selectedEdge
+              }
 
-              nodeContent={nodeContent}
-              onNodeContentChange={setNodeContent}
+              /*
+               * Nodo
+               */
 
-              nodeStatus={nodeStatus}
-              onNodeStatusChange={setNodeStatus}
+              nodeTitle={
+                nodeTitle
+              }
 
-              nodePriority={nodePriority}
-              onNodePriorityChange={setNodePriority}
+              onNodeTitleChange={
+                setNodeTitle
+              }
 
-              isUpdatingNode={isUpdatingNode}
-              onUpdateNode={updateSelectedNode}
+              nodeContent={
+                nodeContent
+              }
 
-              edgeType={edgeType}
-              onEdgeTypeChange={setEdgeType}
+              onNodeContentChange={
+                setNodeContent
+              }
 
-              edgeStrength={edgeStrength}
-              onEdgeStrengthChange={setEdgeStrength}
+              nodeStatus={
+                nodeStatus
+              }
 
-              edgeConfidence={edgeConfidence}
-              onEdgeConfidenceChange={setEdgeConfidence}
+              onNodeStatusChange={
+                setNodeStatus
+              }
 
-              edgeDescription={edgeDescription}
-              onEdgeDescriptionChange={setEdgeDescription}
+              nodePriority={
+                nodePriority
+              }
 
-              isUpdatingEdge={isUpdatingEdge}
-              onUpdateEdge={updateSelectedEdge}
+              onNodePriorityChange={
+                setNodePriority
+              }
 
-              evidenceText={evidenceText}
-              onEvidenceTextChange={setEvidenceText}
+              isUpdatingNode={
+                isUpdatingNode
+              }
 
-              isAddingEvidence={isAddingEvidence}
-              onAddEvidence={addEvidenceToSelectedEdge}
+              onUpdateNode={
+                updateSelectedNode
+              }
+
+              /*
+               * Relación
+               */
+
+              edgeType={
+                edgeType
+              }
+
+              onEdgeTypeChange={
+                setEdgeType
+              }
+
+              edgeStrength={
+                edgeStrength
+              }
+
+              onEdgeStrengthChange={
+                setEdgeStrength
+              }
+
+              edgeConfidence={
+                edgeConfidence
+              }
+
+              onEdgeConfidenceChange={
+                setEdgeConfidence
+              }
+
+              edgeDescription={
+                edgeDescription
+              }
+
+              onEdgeDescriptionChange={
+                setEdgeDescription
+              }
+
+              isUpdatingEdge={
+                isUpdatingEdge
+              }
+
+              onUpdateEdge={
+                updateSelectedEdge
+              }
+
+              /*
+               * Evidencia
+               */
+
+              evidenceText={
+                evidenceText
+              }
+
+              onEvidenceTextChange={
+                setEvidenceText
+              }
+
+              isAddingEvidence={
+                isAddingEvidence
+              }
+
+              onAddEvidence={
+                addEvidenceToSelectedEdge
+              }
             />
 
+            {/*
+             * =========================
+             * HELIX AI
+             * =========================
+             */}
+
             <AISuggestionsPanel
-              hasSelectedNode={Boolean(selectedNode)}
+              hasSelectedNode={
+                Boolean(
+                  selectedNode
+                )
+              }
 
-              suggestions={aiSuggestions}
+              suggestions={
+                aiSuggestions
+              }
 
-              isExpanding={isExpandingIdea}
-              errorMessage={aiErrorMessage}
+              isExpanding={
+                isExpandingIdea
+              }
 
-              onExpand={expandSelectedNode}
+              errorMessage={
+                aiErrorMessage
+              }
 
-              onAcceptSuggestion={acceptAISuggestion}
-              onRejectSuggestion={rejectAISuggestion}
+              onExpand={
+                expandSelectedNode
+              }
 
-              editingSuggestionId={editingSuggestionId}
+              onAcceptSuggestion={
+                acceptAISuggestion
+              }
 
-              editingTitle={editingSuggestionTitle}
+              onRejectSuggestion={
+                rejectAISuggestion
+              }
+
+              /*
+               * Edición IA
+               */
+
+              editingSuggestionId={
+                editingSuggestionId
+              }
+
+              editingTitle={
+                editingSuggestionTitle
+              }
+
               onEditingTitleChange={
                 setEditingSuggestionTitle
               }
 
-              editingContent={editingSuggestionContent}
+              editingContent={
+                editingSuggestionContent
+              }
+
               onEditingContentChange={
                 setEditingSuggestionContent
               }
@@ -412,6 +693,7 @@ export default function UniversePage() {
               editingRelationType={
                 editingSuggestionRelationType
               }
+
               onEditingRelationTypeChange={
                 setEditingSuggestionRelationType
               }

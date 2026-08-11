@@ -25,7 +25,9 @@ import { ApiAIProvider } from "@/services/ai/ApiAIProvider";
 import type {
   AIRelationType,
   AISuggestion,
+  AnalyzeGraphInput,
   GraphContext,
+  GraphInsight,
 } from "@/types/ai";
 
 const universeService =
@@ -130,11 +132,15 @@ export function useWorkspace(
    * =========================
    */
 
-  const [title, setTitle] =
-    useState("");
+  const [
+    title,
+    setTitle,
+  ] = useState("");
 
-  const [content, setContent] =
-    useState("");
+  const [
+    content,
+    setContent,
+  ] = useState("");
 
   const [
     isCreating,
@@ -333,6 +339,28 @@ export function useWorkspace(
   ] = useState<
     AISuggestion["proposedRelationType"] | ""
   >("");
+
+  /*
+   * =========================
+   * AI-004
+   * GRAPH INTELLIGENCE
+   * =========================
+   */
+
+  const [
+    graphInsights,
+    setGraphInsights,
+  ] = useState<GraphInsight[]>([]);
+
+  const [
+    isAnalyzingGraph,
+    setIsAnalyzingGraph,
+  ] = useState(false);
+
+  const [
+    graphAnalysisError,
+    setGraphAnalysisError,
+  ] = useState("");
 
   /*
    * =========================
@@ -608,9 +636,11 @@ export function useWorkspace(
             node,
             index
           ) => ({
-            id: node.id,
+            id:
+              node.id,
 
-            type: "helix",
+            type:
+              "helix",
 
             position: {
               x:
@@ -685,7 +715,6 @@ export function useWorkspace(
                 ? {
                     stroke:
                       "#ef4444",
-
                     strokeDasharray:
                       "8 6",
                   }
@@ -709,7 +738,6 @@ export function useWorkspace(
                   ? {
                       stroke:
                         "#3b82f6",
-
                       strokeDasharray:
                         "4 4",
                     }
@@ -751,16 +779,13 @@ export function useWorkspace(
 
               style: {
                 ...relationStyle,
-
                 strokeWidth,
-
                 opacity,
               },
 
               labelStyle: {
                 fill:
                   "#d4d4d8",
-
                 fontSize:
                   12,
               },
@@ -1606,7 +1631,6 @@ export function useWorkspace(
 
   /*
    * =========================
-   * AI-001
    * EXPANDIR NODO
    * =========================
    */
@@ -1663,6 +1687,104 @@ export function useWorkspace(
       );
     } finally {
       setIsExpandingIdea(
+        false
+      );
+    }
+  }
+
+  /*
+   * =========================
+   * AI-004
+   * ANALIZAR GRAFO COMPLETO
+   * =========================
+   */
+
+  async function analyzeKnowledgeGraph() {
+    try {
+      setIsAnalyzingGraph(
+        true
+      );
+
+      setGraphAnalysisError(
+        ""
+      );
+
+      setGraphInsights(
+        []
+      );
+
+      const input:
+        AnalyzeGraphInput = {
+        universeId,
+
+        graphContext: {
+          nodes:
+            nodes.map(
+              (node) => ({
+                id:
+                  node.id,
+
+                title:
+                  node.title,
+
+                content:
+                  node.content,
+
+                status:
+                  node.status,
+
+                priority:
+                  node.priority,
+              })
+            ),
+
+          edges:
+            edges.map(
+              (edge) => ({
+                id:
+                  edge.id,
+
+                sourceNodeId:
+                  edge.source_node_id,
+
+                targetNodeId:
+                  edge.target_node_id,
+
+                type:
+                  edge.type as AIRelationType,
+
+                strength:
+                  edge.strength,
+
+                confidence:
+                  edge.confidence,
+
+                description:
+                  edge.description,
+
+                evidence:
+                  edge.evidence,
+              })
+            ),
+        },
+      };
+
+      const insights =
+        await aiService.analyzeGraph(
+          input
+        );
+
+      setGraphInsights(
+        insights
+      );
+    } catch (error) {
+      setGraphAnalysisError(
+        error instanceof Error
+          ? error.message
+          : "No se pudo analizar el Knowledge Graph."
+      );
+    } finally {
+      setIsAnalyzingGraph(
         false
       );
     }
@@ -1906,6 +2028,15 @@ export function useWorkspace(
     graphContext,
 
     /*
+     * AI-004
+     */
+
+    graphInsights,
+    isAnalyzingGraph,
+    graphAnalysisError,
+    analyzeKnowledgeGraph,
+
+    /*
      * Selección
      */
 
@@ -2024,7 +2155,7 @@ export function useWorkspace(
     addEvidenceToSelectedEdge,
 
     /*
-     * AI
+     * AI-001 / AI-003
      */
 
     aiSuggestions,
