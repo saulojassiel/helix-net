@@ -20,7 +20,7 @@ import { supabase } from "@/lib/supabase";
 import { UniverseService } from "@/services/UniverseService";
 
 import { AIService } from "@/services/AIService";
-import { MockAIProvider } from "@/services/ai/MockAIProvider";
+import { ApiAIProvider } from "@/services/ai/ApiAIProvider";
 
 import type {
   AISuggestion,
@@ -31,7 +31,7 @@ const universeService =
 
 const aiService =
   new AIService(
-    new MockAIProvider()
+    new ApiAIProvider()
   );
 
 export interface WorkspaceUniverse {
