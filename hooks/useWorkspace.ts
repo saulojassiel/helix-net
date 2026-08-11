@@ -288,7 +288,7 @@ export function useWorkspace(
   /*
    * =========================
    * AI-001
-   * SUGERENCIAS IA
+   * SUGERENCIAS
    * =========================
    */
 
@@ -306,6 +306,35 @@ export function useWorkspace(
     aiErrorMessage,
     setAiErrorMessage,
   ] = useState("");
+
+  /*
+   * =========================
+   * AI-001.2
+   * EDICIÓN DE SUGERENCIAS
+   * =========================
+   */
+
+  const [
+    editingSuggestionId,
+    setEditingSuggestionId,
+  ] = useState<string | null>(null);
+
+  const [
+    editingSuggestionTitle,
+    setEditingSuggestionTitle,
+  ] = useState("");
+
+  const [
+    editingSuggestionContent,
+    setEditingSuggestionContent,
+  ] = useState("");
+
+  const [
+    editingSuggestionRelationType,
+    setEditingSuggestionRelationType,
+  ] = useState<
+    AISuggestion["proposedRelationType"] | ""
+  >("");
 
   /*
    * =========================
@@ -479,8 +508,7 @@ export function useWorkspace(
 
   /*
    * =========================
-   * KE-005.2
-   * NODOS FILTRADOS
+   * FILTROS
    * =========================
    */
 
@@ -512,12 +540,6 @@ export function useWorkspace(
       ]
     );
 
-  /*
-   * =========================
-   * IDS VISIBLES
-   * =========================
-   */
-
   const visibleNodeIds =
     useMemo(
       () =>
@@ -529,13 +551,6 @@ export function useWorkspace(
         ),
       [filteredNodes]
     );
-
-  /*
-   * =========================
-   * KE-005.2
-   * EDGES FILTRADOS
-   * =========================
-   */
 
   const filteredEdges =
     useMemo(
@@ -602,16 +617,14 @@ export function useWorkspace(
             position: {
               x:
                 node.position_x === 0
-                  ? (index % 3) *
-                    280
+                  ? (index % 3) * 280
                   : node.position_x,
 
               y:
                 node.position_y === 0
                   ? Math.floor(
                       index / 3
-                    ) *
-                    180
+                    ) * 180
                   : node.position_y,
             },
 
@@ -666,8 +679,7 @@ export function useWorkspace(
 
             const opacity =
               0.25 +
-              confidence *
-                0.75;
+              confidence * 0.75;
 
             const relationStyle =
               edge.type ===
@@ -789,7 +801,6 @@ export function useWorkspace(
             node.id ===
             selectedNodeId
         ) ?? null,
-
       [
         nodes,
         selectedNodeId,
@@ -804,7 +815,6 @@ export function useWorkspace(
             edge.id ===
             selectedEdgeId
         ) ?? null,
-
       [
         edges,
         selectedEdgeId,
@@ -843,8 +853,7 @@ export function useWorkspace(
       await loadWorkspace();
     } catch (error) {
       alert(
-        error instanceof
-          Error
+        error instanceof Error
           ? error.message
           : "No se pudo crear la idea."
       );
@@ -903,14 +912,10 @@ export function useWorkspace(
       node.priority
     );
 
-    /*
-     * Limpiamos sugerencias
-     * anteriores al cambiar
-     * de nodo.
-     */
-
     setAiSuggestions([]);
     setAiErrorMessage("");
+
+    cancelEditingAISuggestion();
   }
 
   /*
@@ -958,16 +963,15 @@ export function useWorkspace(
     );
 
     setEdgeDescription(
-      edge.description ??
-        ""
+      edge.description ?? ""
     );
 
-    setEvidenceText(
-      ""
-    );
+    setEvidenceText("");
 
     setAiSuggestions([]);
     setAiErrorMessage("");
+
+    cancelEditingAISuggestion();
   }
 
   /*
@@ -1034,7 +1038,6 @@ export function useWorkspace(
 
   /*
    * =========================
-   * KE-004
    * CONEXIÓN PENDIENTE
    * =========================
    */
@@ -1112,6 +1115,8 @@ export function useWorkspace(
 
     setAiSuggestions([]);
     setAiErrorMessage("");
+
+    cancelEditingAISuggestion();
   }
 
   /*
@@ -1177,8 +1182,7 @@ export function useWorkspace(
       await loadWorkspace();
     } catch (error) {
       alert(
-        error instanceof
-          Error
+        error instanceof Error
           ? error.message
           : "No se pudo crear la relación."
       );
@@ -1249,8 +1253,7 @@ export function useWorkspace(
       await loadWorkspace();
     } catch (error) {
       alert(
-        error instanceof
-          Error
+        error instanceof Error
           ? error.message
           : "No se pudo actualizar la relación."
       );
@@ -1323,8 +1326,7 @@ export function useWorkspace(
       await loadWorkspace();
     } catch (error) {
       alert(
-        error instanceof
-          Error
+        error instanceof Error
           ? error.message
           : "No se pudo agregar la evidencia."
       );
@@ -1365,8 +1367,7 @@ export function useWorkspace(
       await loadWorkspace();
     } catch (error) {
       alert(
-        error instanceof
-          Error
+        error instanceof Error
           ? error.message
           : "No se pudo actualizar el nodo."
       );
@@ -1402,6 +1403,8 @@ export function useWorkspace(
         []
       );
 
+      cancelEditingAISuggestion();
+
       const suggestions =
         await aiService.expandIdea({
           universeId,
@@ -1424,8 +1427,7 @@ export function useWorkspace(
       );
     } catch (error) {
       setAiErrorMessage(
-        error instanceof
-          Error
+        error instanceof Error
           ? error.message
           : "No se pudo expandir la idea."
       );
@@ -1438,77 +1440,224 @@ export function useWorkspace(
 
   /*
    * =========================
-   * API DEL WORKSPACE
+   * AI-001.1
+   * ACEPTAR SUGERENCIA
    * =========================
    */
 
   async function acceptAISuggestion(
-  suggestion: AISuggestion
-) {
-  if (!graph) {
-    return;
+    suggestion: AISuggestion
+  ) {
+    if (!graph) {
+      return;
+    }
+
+    const sourceNode =
+      nodes.find(
+        (node) =>
+          node.id ===
+          suggestion.sourceNodeId
+      );
+
+    if (!sourceNode) {
+      alert(
+        "No se encontró el nodo origen de la sugerencia."
+      );
+
+      return;
+    }
+
+    try {
+      const newNodeId =
+        await universeService.addIdea(
+          universeId,
+          graph.id,
+          suggestion.title,
+          suggestion.content
+        );
+
+      const newNodeIdString =
+        typeof newNodeId === "string"
+          ? newNodeId
+          : String(newNodeId);
+
+      if (
+        suggestion.proposedRelationType
+      ) {
+        await universeService.connectIdeas(
+          universeId,
+          sourceNode.id,
+          newNodeIdString,
+          suggestion.proposedRelationType,
+          1,
+          suggestion.confidence,
+          suggestion.reasoning ??
+            null
+        );
+      }
+
+      setAiSuggestions(
+        (current) =>
+          current.filter(
+            (item) =>
+              item.id !==
+              suggestion.id
+          )
+      );
+
+      if (
+        editingSuggestionId ===
+        suggestion.id
+      ) {
+        cancelEditingAISuggestion();
+      }
+
+      await loadWorkspace();
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : "No se pudo aceptar la sugerencia."
+      );
+    }
   }
 
-  const sourceNode = nodes.find(
-    (node) =>
-      node.id ===
-      suggestion.sourceNodeId
-  );
+  /*
+   * =========================
+   * AI-001.2
+   * RECHAZAR SUGERENCIA
+   * =========================
+   */
 
-  if (!sourceNode) {
-    alert(
-      "No se encontró el nodo origen de la sugerencia."
+  function rejectAISuggestion(
+    suggestionId: string
+  ) {
+    setAiSuggestions(
+      (current) =>
+        current.filter(
+          (suggestion) =>
+            suggestion.id !==
+            suggestionId
+        )
     );
 
-    return;
+    if (
+      editingSuggestionId ===
+      suggestionId
+    ) {
+      cancelEditingAISuggestion();
+    }
   }
 
-  try {
-    const newNodeId =
-      await universeService.addIdea(
-        universeId,
-        graph.id,
-        suggestion.title,
-        suggestion.content
-      );
+  /*
+   * =========================
+   * AI-001.2
+   * EMPEZAR EDICIÓN
+   * =========================
+   */
 
-    const newNodeIdString =
-      typeof newNodeId === "string"
-        ? newNodeId
-        : String(newNodeId);
+  function startEditingAISuggestion(
+    suggestion: AISuggestion
+  ) {
+    setEditingSuggestionId(
+      suggestion.id
+    );
 
+    setEditingSuggestionTitle(
+      suggestion.title
+    );
+
+    setEditingSuggestionContent(
+      suggestion.content
+    );
+
+    setEditingSuggestionRelationType(
+      suggestion.proposedRelationType ??
+        ""
+    );
+  }
+
+  /*
+   * =========================
+   * AI-001.2
+   * CANCELAR EDICIÓN
+   * =========================
+   */
+
+  function cancelEditingAISuggestion() {
+    setEditingSuggestionId(
+      null
+    );
+
+    setEditingSuggestionTitle(
+      ""
+    );
+
+    setEditingSuggestionContent(
+      ""
+    );
+
+    setEditingSuggestionRelationType(
+      ""
+    );
+  }
+
+  /*
+   * =========================
+   * AI-001.2
+   * GUARDAR EDICIÓN
+   * =========================
+   */
+
+  function saveEditedAISuggestion() {
     if (
-      suggestion.proposedRelationType
+      !editingSuggestionId
     ) {
-      await universeService.connectIdeas(
-        universeId,
-        sourceNode.id,
-        newNodeIdString,
-        suggestion.proposedRelationType,
-        1,
-        suggestion.confidence,
-        suggestion.reasoning ?? null
-      );
+      return;
+    }
+
+    const cleanTitle =
+      editingSuggestionTitle.trim();
+
+    const cleanContent =
+      editingSuggestionContent.trim();
+
+    if (!cleanTitle) {
+      return;
     }
 
     setAiSuggestions(
       (current) =>
-        current.filter(
-          (item) =>
-            item.id !==
-            suggestion.id
+        current.map(
+          (suggestion) =>
+            suggestion.id ===
+            editingSuggestionId
+              ? {
+                  ...suggestion,
+
+                  title:
+                    cleanTitle,
+
+                  content:
+                    cleanContent,
+
+                  proposedRelationType:
+                    editingSuggestionRelationType ||
+                    undefined,
+                }
+              : suggestion
         )
     );
 
-    await loadWorkspace();
-  } catch (error) {
-    alert(
-      error instanceof Error
-        ? error.message
-        : "No se pudo aceptar la sugerencia."
-    );
+    cancelEditingAISuggestion();
   }
-}
+
+  /*
+   * =========================
+   * API DEL WORKSPACE
+   * =========================
+   */
+
   return {
     universe,
     graph,
@@ -1646,7 +1795,29 @@ export function useWorkspace(
     isExpandingIdea,
     aiErrorMessage,
     expandSelectedNode,
+
     acceptAISuggestion,
+    rejectAISuggestion,
+
+    /*
+     * AI-001.2
+     * edición
+     */
+
+    editingSuggestionId,
+
+    editingSuggestionTitle,
+    setEditingSuggestionTitle,
+
+    editingSuggestionContent,
+    setEditingSuggestionContent,
+
+    editingSuggestionRelationType,
+    setEditingSuggestionRelationType,
+
+    startEditingAISuggestion,
+    cancelEditingAISuggestion,
+    saveEditedAISuggestion,
 
     /*
      * General

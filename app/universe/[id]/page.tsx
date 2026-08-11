@@ -29,18 +29,38 @@ export default function UniversePage() {
     flowNodes,
     flowEdges,
 
+    /*
+     * =========================
+     * SELECCIÓN
+     * =========================
+     */
+
     selectedNode,
     selectedNodeId,
     setSelectedNodeId,
 
     selectedEdge,
 
+    /*
+     * =========================
+     * CREAR IDEA
+     * =========================
+     */
+
     title,
     content,
     isCreating,
+
     setTitle,
     setContent,
+
     addIdea,
+
+    /*
+     * =========================
+     * EDITOR DE NODOS
+     * =========================
+     */
 
     nodeTitle,
     setNodeTitle,
@@ -57,6 +77,12 @@ export default function UniversePage() {
     isUpdatingNode,
     updateSelectedNode,
 
+    /*
+     * =========================
+     * EDITOR DE RELACIONES
+     * =========================
+     */
+
     edgeType,
     setEdgeType,
 
@@ -72,11 +98,24 @@ export default function UniversePage() {
     isUpdatingEdge,
     updateSelectedEdge,
 
+    /*
+     * =========================
+     * EVIDENCIA
+     * =========================
+     */
+
     evidenceText,
     setEvidenceText,
 
     isAddingEvidence,
     addEvidenceToSelectedEdge,
+
+    /*
+     * =========================
+     * KE-004
+     * CONEXIÓN PENDIENTE
+     * =========================
+     */
 
     pendingConnection,
 
@@ -97,6 +136,13 @@ export default function UniversePage() {
     createPendingRelation,
     cancelPendingRelation,
 
+    /*
+     * =========================
+     * KE-005
+     * FILTROS
+     * =========================
+     */
+
     nodeStatusFilter,
     setNodeStatusFilter,
 
@@ -112,20 +158,68 @@ export default function UniversePage() {
     minimumStrength,
     setMinimumStrength,
 
+    /*
+     * =========================
+     * AI-001
+     * =========================
+     */
+
     aiSuggestions,
     isExpandingIdea,
     aiErrorMessage,
+
     expandSelectedNode,
     acceptAISuggestion,
+    rejectAISuggestion,
+
+    /*
+     * =========================
+     * AI-001.2
+     * EDICIÓN DE SUGERENCIAS
+     * =========================
+     */
+
+    editingSuggestionId,
+
+    editingSuggestionTitle,
+    setEditingSuggestionTitle,
+
+    editingSuggestionContent,
+    setEditingSuggestionContent,
+
+    editingSuggestionRelationType,
+    setEditingSuggestionRelationType,
+
+    startEditingAISuggestion,
+    cancelEditingAISuggestion,
+    saveEditedAISuggestion,
+
+    /*
+     * =========================
+     * GENERAL
+     * =========================
+     */
 
     loading,
     errorMessage,
+
+    /*
+     * =========================
+     * REACT FLOW
+     * =========================
+     */
 
     handleNodeDragStop,
     handleNodeClick,
     handleEdgeClick,
     handleConnect,
   } = useWorkspace(params.id);
+
+  /*
+   * =========================
+   * LOADING
+   * =========================
+   */
 
   if (loading) {
     return (
@@ -134,6 +228,12 @@ export default function UniversePage() {
       </main>
     );
   }
+
+  /*
+   * =========================
+   * ERROR
+   * =========================
+   */
 
   if (
     errorMessage ||
@@ -152,6 +252,12 @@ export default function UniversePage() {
       </main>
     );
   }
+
+  /*
+   * =========================
+   * WORKSPACE
+   * =========================
+   */
 
   return (
     <WorkspaceLayout
@@ -280,11 +386,47 @@ export default function UniversePage() {
 
             <AISuggestionsPanel
               hasSelectedNode={Boolean(selectedNode)}
+
               suggestions={aiSuggestions}
+
               isExpanding={isExpandingIdea}
               errorMessage={aiErrorMessage}
+
               onExpand={expandSelectedNode}
+
               onAcceptSuggestion={acceptAISuggestion}
+              onRejectSuggestion={rejectAISuggestion}
+
+              editingSuggestionId={editingSuggestionId}
+
+              editingTitle={editingSuggestionTitle}
+              onEditingTitleChange={
+                setEditingSuggestionTitle
+              }
+
+              editingContent={editingSuggestionContent}
+              onEditingContentChange={
+                setEditingSuggestionContent
+              }
+
+              editingRelationType={
+                editingSuggestionRelationType
+              }
+              onEditingRelationTypeChange={
+                setEditingSuggestionRelationType
+              }
+
+              onStartEditing={
+                startEditingAISuggestion
+              }
+
+              onCancelEditing={
+                cancelEditingAISuggestion
+              }
+
+              onSaveEditing={
+                saveEditedAISuggestion
+              }
             />
           </div>
         )
