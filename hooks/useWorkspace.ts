@@ -18,7 +18,6 @@ import type {
 
 import { supabase } from "@/lib/supabase";
 import { UniverseService } from "@/services/UniverseService";
-
 import { AIService } from "@/services/AIService";
 import { ApiAIProvider } from "@/services/ai/ApiAIProvider";
 
@@ -116,7 +115,6 @@ export function useWorkspace(
 
   /*
    * =========================
-   * KE-004
    * CONEXIÓN PENDIENTE
    * =========================
    */
@@ -211,7 +209,6 @@ export function useWorkspace(
 
   /*
    * =========================
-   * KE-004
    * NUEVA RELACIÓN
    * =========================
    */
@@ -259,7 +256,6 @@ export function useWorkspace(
 
   /*
    * =========================
-   * KE-005
    * FILTROS
    * =========================
    */
@@ -291,8 +287,7 @@ export function useWorkspace(
 
   /*
    * =========================
-   * AI-001
-   * SUGERENCIAS
+   * AI - SUGERENCIAS
    * =========================
    */
 
@@ -313,7 +308,6 @@ export function useWorkspace(
 
   /*
    * =========================
-   * AI-001.2
    * EDICIÓN DE SUGERENCIAS
    * =========================
    */
@@ -342,7 +336,7 @@ export function useWorkspace(
 
   /*
    * =========================
-   * AI-004
+   * AI-004 / AI-006
    * GRAPH INTELLIGENCE
    * =========================
    */
@@ -389,6 +383,10 @@ export function useWorkspace(
       setLoading(true);
       setErrorMessage("");
 
+      /*
+       * UNIVERSO
+       */
+
       const {
         data: universeData,
         error: universeError,
@@ -416,6 +414,10 @@ export function useWorkspace(
         return;
       }
 
+      /*
+       * GRAFO
+       */
+
       const {
         data: graphData,
         error: graphError,
@@ -440,6 +442,10 @@ export function useWorkspace(
         setLoading(false);
         return;
       }
+
+      /*
+       * NODOS
+       */
 
       const {
         data: nodeData,
@@ -469,6 +475,10 @@ export function useWorkspace(
         return;
       }
 
+      /*
+       * RELACIONES
+       */
+
       const {
         data: edgeData,
         error: edgeError,
@@ -491,6 +501,45 @@ export function useWorkspace(
         return;
       }
 
+      /*
+       * AI-006.3
+       * MEMORIA PERSISTENTE
+       */
+
+      const {
+        data: insightData,
+        error: insightError,
+      } = await supabase
+        .from("graph_insights")
+        .select(
+          "id, kind, title, description, confidence, related_node_ids, related_edge_ids, suggested_action, action, metadata, status, created_at, resolved_at"
+        )
+        .eq(
+          "universe_id",
+          universeId
+        )
+        .order(
+          "created_at",
+          {
+            ascending: false,
+          }
+        );
+
+      if (insightError) {
+        setErrorMessage(
+          insightError.message
+        );
+
+        setLoading(false);
+        return;
+      }
+
+      /*
+       * =========================
+       * ACTUALIZAR ESTADO
+       * =========================
+       */
+
       setUniverse(
         universeData
       );
@@ -505,6 +554,64 @@ export function useWorkspace(
 
       setEdges(
         (edgeData ?? []) as WorkspaceEdge[]
+      );
+
+      /*
+       * Restauramos los insights
+       * guardados anteriormente.
+       */
+
+      setGraphInsights(
+        (insightData ?? []).map(
+          (insight) => ({
+            id:
+              insight.id,
+
+            kind:
+              insight.kind,
+
+            title:
+              insight.title,
+
+            description:
+              insight.description,
+
+            confidence:
+              insight.confidence,
+
+            relatedNodeIds:
+              insight.related_node_ids ??
+              [],
+
+            relatedEdgeIds:
+              insight.related_edge_ids ??
+              [],
+
+            suggestedAction:
+              insight.suggested_action ??
+              undefined,
+
+            action:
+              insight.action ??
+              undefined,
+
+            metadata: {
+              ...(insight.metadata ??
+                {}),
+
+              persistence: {
+                status:
+                  insight.status,
+
+                createdAt:
+                  insight.created_at,
+
+                resolvedAt:
+                  insight.resolved_at,
+              },
+            },
+          })
+        ) as GraphInsight[]
       );
 
       setLoading(false);
@@ -645,14 +752,16 @@ export function useWorkspace(
             position: {
               x:
                 node.position_x === 0
-                  ? (index % 3) * 280
+                  ? (index % 3) *
+                    280
                   : node.position_x,
 
               y:
                 node.position_y === 0
                   ? Math.floor(
                       index / 3
-                    ) * 180
+                    ) *
+                    180
                   : node.position_y,
             },
 
@@ -707,7 +816,8 @@ export function useWorkspace(
 
             const opacity =
               0.25 +
-              confidence * 0.75;
+              confidence *
+                0.75;
 
             const relationStyle =
               edge.type ===
@@ -715,6 +825,7 @@ export function useWorkspace(
                 ? {
                     stroke:
                       "#ef4444",
+
                     strokeDasharray:
                       "8 6",
                   }
@@ -738,6 +849,7 @@ export function useWorkspace(
                   ? {
                       stroke:
                         "#3b82f6",
+
                       strokeDasharray:
                         "4 4",
                     }
@@ -786,6 +898,7 @@ export function useWorkspace(
               labelStyle: {
                 fill:
                   "#d4d4d8",
+
                 fontSize:
                   12,
               },
@@ -854,7 +967,6 @@ export function useWorkspace(
 
   /*
    * =========================
-   * AI-003
    * GRAPH CONTEXT
    * =========================
    */
@@ -1153,13 +1265,8 @@ export function useWorkspace(
       node.priority
     );
 
-    setAiSuggestions(
-      []
-    );
-
-    setAiErrorMessage(
-      ""
-    );
+    setAiSuggestions([]);
+    setAiErrorMessage("");
 
     cancelEditingAISuggestion();
   }
@@ -1213,17 +1320,10 @@ export function useWorkspace(
         ""
     );
 
-    setEvidenceText(
-      ""
-    );
+    setEvidenceText("");
 
-    setAiSuggestions(
-      []
-    );
-
-    setAiErrorMessage(
-      ""
-    );
+    setAiSuggestions([]);
+    setAiErrorMessage("");
 
     cancelEditingAISuggestion();
   }
@@ -1367,13 +1467,8 @@ export function useWorkspace(
       null
     );
 
-    setAiSuggestions(
-      []
-    );
-
-    setAiErrorMessage(
-      ""
-    );
+    setAiSuggestions([]);
+    setAiErrorMessage("");
 
     cancelEditingAISuggestion();
   }
@@ -1451,12 +1546,6 @@ export function useWorkspace(
       );
     }
   }
-
-  /*
-   * =========================
-   * CANCELAR RELACIÓN
-   * =========================
-   */
 
   function cancelPendingRelation() {
     setPendingConnection(
@@ -1572,9 +1661,7 @@ export function useWorkspace(
         selectedEdge.metadata
       );
 
-      setEvidenceText(
-        ""
-      );
+      setEvidenceText("");
 
       await loadWorkspace();
     } catch (error) {
@@ -1645,13 +1732,9 @@ export function useWorkspace(
         true
       );
 
-      setAiErrorMessage(
-        ""
-      );
+      setAiErrorMessage("");
 
-      setAiSuggestions(
-        []
-      );
+      setAiSuggestions([]);
 
       cancelEditingAISuggestion();
 
@@ -1694,8 +1777,8 @@ export function useWorkspace(
 
   /*
    * =========================
-   * AI-004
-   * ANALIZAR GRAFO COMPLETO
+   * AI-004 / AI-006
+   * ANALIZAR GRAFO
    * =========================
    */
 
@@ -1709,9 +1792,11 @@ export function useWorkspace(
         ""
       );
 
-      setGraphInsights(
-        []
-      );
+      /*
+       * No borramos los insights
+       * históricos hasta saber que
+       * el nuevo análisis funcionó.
+       */
 
       const input:
         AnalyzeGraphInput = {
@@ -1774,9 +1859,84 @@ export function useWorkspace(
           input
         );
 
-      setGraphInsights(
-        insights
-      );
+      /*
+       * =========================
+       * AI-006.2
+       * GUARDAR EN SUPABASE
+       * =========================
+       */
+
+      const rows =
+        insights.map(
+          (insight) => ({
+            universe_id:
+              universeId,
+
+            kind:
+              insight.kind,
+
+            title:
+              insight.title,
+
+            description:
+              insight.description,
+
+            confidence:
+              insight.confidence,
+
+            related_node_ids:
+              insight.relatedNodeIds,
+
+            related_edge_ids:
+              insight.relatedEdgeIds,
+
+            suggested_action:
+              insight.suggestedAction ??
+              null,
+
+            action:
+              insight.action ??
+              null,
+
+            metadata:
+              insight.metadata ??
+              {},
+
+            status:
+              "OPEN",
+          })
+        );
+
+      if (
+        rows.length > 0
+      ) {
+        const {
+          error:
+            insightInsertError,
+        } = await supabase
+          .from(
+            "graph_insights"
+          )
+          .insert(
+            rows
+          );
+
+        if (
+          insightInsertError
+        ) {
+          throw new Error(
+            insightInsertError.message
+          );
+        }
+      }
+
+      /*
+       * Volvemos a cargar desde
+       * Supabase para obtener IDs
+       * persistentes reales.
+       */
+
+      await loadWorkspace();
     } catch (error) {
       setGraphAnalysisError(
         error instanceof Error
@@ -1904,7 +2064,7 @@ export function useWorkspace(
 
   /*
    * =========================
-   * EMPEZAR EDICIÓN IA
+   * EDICIÓN IA
    * =========================
    */
 
@@ -1929,12 +2089,6 @@ export function useWorkspace(
     );
   }
 
-  /*
-   * =========================
-   * CANCELAR EDICIÓN IA
-   * =========================
-   */
-
   function cancelEditingAISuggestion() {
     setEditingSuggestionId(
       null
@@ -1952,12 +2106,6 @@ export function useWorkspace(
       ""
     );
   }
-
-  /*
-   * =========================
-   * GUARDAR EDICIÓN IA
-   * =========================
-   */
 
   function saveEditedAISuggestion() {
     if (
@@ -2004,153 +2152,49 @@ export function useWorkspace(
 
   /*
    * =========================
-   * API DEL WORKSPACE
+   * AI-005
+   * EJECUTAR INSIGHT
    * =========================
    */
 
   function executeGraphInsightAction(
-  insight: GraphInsight
-) {
-  const action = insight.action;
+    insight: GraphInsight
+  ) {
+    const action =
+      insight.action;
 
-  if (!action) {
-    alert(
-      "Este insight no contiene una acción ejecutable."
-    );
-    return;
-  }
+    if (!action) {
+      alert(
+        "Este insight no contiene una acción ejecutable."
+      );
 
-  switch (action.kind) {
-    /*
-     * =========================
-     * SELECCIONAR NODO
-     * =========================
-     */
-
-    case "select_node": {
-      if (!action.nodeId) {
-        return;
-      }
-
-      selectNode(action.nodeId);
       return;
     }
 
-    /*
-     * =========================
-     * SELECCIONAR RELACIÓN
-     * =========================
-     */
+    switch (
+      action.kind
+    ) {
+      case "select_node": {
+        if (
+          !action.nodeId
+        ) {
+          return;
+        }
 
-    case "select_edge": {
-      if (!action.edgeId) {
-        return;
-      }
-
-      selectEdge(action.edgeId);
-      return;
-    }
-
-    /*
-     * =========================
-     * PREPARAR CONEXIÓN
-     * =========================
-     */
-
-    case "prepare_connection": {
-      const source =
-        action.sourceNodeId;
-
-      const target =
-        action.targetNodeId;
-
-      if (
-        !source ||
-        !target ||
-        source === target
-      ) {
-        return;
-      }
-
-      const alreadyExists =
-        edges.some(
-          (edge) =>
-            edge.source_node_id ===
-              source &&
-            edge.target_node_id ===
-              target
+        selectNode(
+          action.nodeId
         );
 
-      if (alreadyExists) {
-        alert(
-          "Ya existe una conexión entre estos nodos."
-        );
         return;
       }
 
-      setPendingConnection({
-        source,
-        target,
-        sourceHandle: null,
-        targetHandle: null,
-      });
+      case "select_edge": {
+        if (
+          !action.edgeId
+        ) {
+          return;
+        }
 
-      setPendingRelationType(
-        action.relationType ??
-          "complementa"
-      );
-
-      setPendingRelationStrength(
-        0.7
-      );
-
-      setPendingRelationConfidence(
-        insight.confidence
-      );
-
-      setPendingRelationDescription(
-        insight.description
-      );
-
-      setSelectedNodeId(null);
-      setSelectedEdgeId(null);
-
-      return;
-    }
-
-    /*
-     * =========================
-     * EXPANDIR NODO
-     * =========================
-     */
-
-    case "expand_node": {
-      if (!action.nodeId) {
-        return;
-      }
-
-      /*
-       * Primero seleccionamos.
-       *
-       * No ejecutamos OpenAI
-       * automáticamente para evitar
-       * una segunda llamada de pago
-       * sin confirmación del usuario.
-       */
-
-      selectNode(action.nodeId);
-
-      return;
-    }
-
-    /*
-     * =========================
-     * REVISAR CONTRADICCIÓN
-     * =========================
-     */
-
-    case "review_contradiction": {
-      if (action.edgeId) {
         selectEdge(
           action.edgeId
         );
@@ -2158,19 +2202,124 @@ export function useWorkspace(
         return;
       }
 
-      if (action.nodeId) {
+      case "prepare_connection": {
+        const source =
+          action.sourceNodeId;
+
+        const target =
+          action.targetNodeId;
+
+        if (
+          !source ||
+          !target ||
+          source === target
+        ) {
+          return;
+        }
+
+        const alreadyExists =
+          edges.some(
+            (edge) =>
+              edge.source_node_id ===
+                source &&
+              edge.target_node_id ===
+                target
+          );
+
+        if (
+          alreadyExists
+        ) {
+          alert(
+            "Ya existe una conexión entre estos nodos."
+          );
+
+          return;
+        }
+
+        setPendingConnection({
+          source,
+          target,
+          sourceHandle:
+            null,
+          targetHandle:
+            null,
+        });
+
+        setPendingRelationType(
+          action.relationType ??
+            "complementa"
+        );
+
+        setPendingRelationStrength(
+          0.7
+        );
+
+        setPendingRelationConfidence(
+          insight.confidence
+        );
+
+        setPendingRelationDescription(
+          insight.description
+        );
+
+        setSelectedNodeId(
+          null
+        );
+
+        setSelectedEdgeId(
+          null
+        );
+
+        return;
+      }
+
+      case "expand_node": {
+        if (
+          !action.nodeId
+        ) {
+          return;
+        }
+
         selectNode(
           action.nodeId
         );
+
+        return;
       }
 
-      return;
-    }
+      case "review_contradiction": {
+        if (
+          action.edgeId
+        ) {
+          selectEdge(
+            action.edgeId
+          );
 
-    default:
-      return;
+          return;
+        }
+
+        if (
+          action.nodeId
+        ) {
+          selectNode(
+            action.nodeId
+          );
+        }
+
+        return;
+      }
+
+      default:
+        return;
+    }
   }
-}
+
+  /*
+   * =========================
+   * API DEL WORKSPACE
+   * =========================
+   */
+
   return {
     universe,
     graph,
@@ -2184,23 +2333,20 @@ export function useWorkspace(
     flowNodes,
     flowEdges,
 
-    /*
-     * AI-003
-     */
-
     graphContext,
 
     /*
-     * AI-004
+     * GRAPH INTELLIGENCE
      */
 
     graphInsights,
     isAnalyzingGraph,
     graphAnalysisError,
     analyzeKnowledgeGraph,
-executeGraphInsightAction,
+    executeGraphInsightAction,
+
     /*
-     * Selección
+     * SELECCIÓN
      */
 
     selectedNode,
@@ -2214,7 +2360,7 @@ executeGraphInsightAction,
     selectEdge,
 
     /*
-     * KE-004
+     * RELACIÓN PENDIENTE
      */
 
     pendingConnection,
@@ -2238,7 +2384,7 @@ executeGraphInsightAction,
     cancelPendingRelation,
 
     /*
-     * KE-005
+     * FILTROS
      */
 
     nodeStatusFilter,
@@ -2257,7 +2403,7 @@ executeGraphInsightAction,
     setMinimumStrength,
 
     /*
-     * Crear idea
+     * CREAR IDEA
      */
 
     title,
@@ -2270,7 +2416,7 @@ executeGraphInsightAction,
     addIdea,
 
     /*
-     * Editor nodo
+     * EDITOR NODO
      */
 
     nodeTitle,
@@ -2289,7 +2435,7 @@ executeGraphInsightAction,
     updateSelectedNode,
 
     /*
-     * Editor relación
+     * EDITOR RELACIÓN
      */
 
     edgeType,
@@ -2308,7 +2454,7 @@ executeGraphInsightAction,
     updateSelectedEdge,
 
     /*
-     * Evidencia
+     * EVIDENCIA
      */
 
     evidenceText,
@@ -2318,7 +2464,7 @@ executeGraphInsightAction,
     addEvidenceToSelectedEdge,
 
     /*
-     * AI-001 / AI-003
+     * AI EXPANSIÓN
      */
 
     aiSuggestions,
@@ -2330,7 +2476,7 @@ executeGraphInsightAction,
     rejectAISuggestion,
 
     /*
-     * Edición IA
+     * EDICIÓN IA
      */
 
     editingSuggestionId,
@@ -2349,7 +2495,7 @@ executeGraphInsightAction,
     saveEditedAISuggestion,
 
     /*
-     * General
+     * GENERAL
      */
 
     loading,
@@ -2357,7 +2503,7 @@ executeGraphInsightAction,
     loadWorkspace,
 
     /*
-     * Handlers
+     * REACT FLOW
      */
 
     handleNodeDragStop,
