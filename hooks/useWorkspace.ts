@@ -2008,6 +2008,169 @@ export function useWorkspace(
    * =========================
    */
 
+  function executeGraphInsightAction(
+  insight: GraphInsight
+) {
+  const action = insight.action;
+
+  if (!action) {
+    alert(
+      "Este insight no contiene una acción ejecutable."
+    );
+    return;
+  }
+
+  switch (action.kind) {
+    /*
+     * =========================
+     * SELECCIONAR NODO
+     * =========================
+     */
+
+    case "select_node": {
+      if (!action.nodeId) {
+        return;
+      }
+
+      selectNode(action.nodeId);
+      return;
+    }
+
+    /*
+     * =========================
+     * SELECCIONAR RELACIÓN
+     * =========================
+     */
+
+    case "select_edge": {
+      if (!action.edgeId) {
+        return;
+      }
+
+      selectEdge(action.edgeId);
+      return;
+    }
+
+    /*
+     * =========================
+     * PREPARAR CONEXIÓN
+     * =========================
+     */
+
+    case "prepare_connection": {
+      const source =
+        action.sourceNodeId;
+
+      const target =
+        action.targetNodeId;
+
+      if (
+        !source ||
+        !target ||
+        source === target
+      ) {
+        return;
+      }
+
+      const alreadyExists =
+        edges.some(
+          (edge) =>
+            edge.source_node_id ===
+              source &&
+            edge.target_node_id ===
+              target
+        );
+
+      if (alreadyExists) {
+        alert(
+          "Ya existe una conexión entre estos nodos."
+        );
+        return;
+      }
+
+      setPendingConnection({
+        source,
+        target,
+        sourceHandle: null,
+        targetHandle: null,
+      });
+
+      setPendingRelationType(
+        action.relationType ??
+          "complementa"
+      );
+
+      setPendingRelationStrength(
+        0.7
+      );
+
+      setPendingRelationConfidence(
+        insight.confidence
+      );
+
+      setPendingRelationDescription(
+        insight.description
+      );
+
+      setSelectedNodeId(null);
+      setSelectedEdgeId(null);
+
+      return;
+    }
+
+    /*
+     * =========================
+     * EXPANDIR NODO
+     * =========================
+     */
+
+    case "expand_node": {
+      if (!action.nodeId) {
+        return;
+      }
+
+      /*
+       * Primero seleccionamos.
+       *
+       * No ejecutamos OpenAI
+       * automáticamente para evitar
+       * una segunda llamada de pago
+       * sin confirmación del usuario.
+       */
+
+      selectNode(action.nodeId);
+
+      return;
+    }
+
+    /*
+     * =========================
+     * REVISAR CONTRADICCIÓN
+     * =========================
+     */
+
+    case "review_contradiction": {
+      if (action.edgeId) {
+        selectEdge(
+          action.edgeId
+        );
+
+        return;
+      }
+
+      if (action.nodeId) {
+        selectNode(
+          action.nodeId
+        );
+      }
+
+      return;
+    }
+
+    default:
+      return;
+  }
+}
   return {
     universe,
     graph,
@@ -2035,7 +2198,7 @@ export function useWorkspace(
     isAnalyzingGraph,
     graphAnalysisError,
     analyzeKnowledgeGraph,
-
+executeGraphInsightAction,
     /*
      * Selección
      */

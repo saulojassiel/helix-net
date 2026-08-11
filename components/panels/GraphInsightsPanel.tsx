@@ -14,6 +14,10 @@ interface GraphInsightsPanelProps {
   totalEdges: number;
 
   onAnalyze: () => void;
+
+  onExecuteInsightAction: (
+    insight: GraphInsight
+  ) => void;
 }
 
 function getInsightLabel(
@@ -64,6 +68,36 @@ function getInsightClasses(
   }
 }
 
+function getActionLabel(
+  insight: GraphInsight
+) {
+  const action = insight.action;
+
+  if (!action) {
+    return "Sin acción disponible";
+  }
+
+  switch (action.kind) {
+    case "select_node":
+      return "Abrir nodo";
+
+    case "select_edge":
+      return "Abrir relación";
+
+    case "prepare_connection":
+      return "Preparar conexión";
+
+    case "expand_node":
+      return "Investigar nodo";
+
+    case "review_contradiction":
+      return "Revisar contradicción";
+
+    default:
+      return "Ejecutar acción";
+  }
+}
+
 export default function GraphInsightsPanel({
   insights,
   isAnalyzing,
@@ -73,6 +107,7 @@ export default function GraphInsightsPanel({
   totalEdges,
 
   onAnalyze,
+  onExecuteInsightAction,
 }: GraphInsightsPanelProps) {
   const canAnalyze =
     totalNodes > 0;
@@ -165,6 +200,11 @@ export default function GraphInsightsPanel({
                     insight.kind
                   );
 
+                const hasAction =
+                  Boolean(
+                    insight.action
+                  );
+
                 return (
                   <article
                     key={insight.id}
@@ -239,6 +279,21 @@ export default function GraphInsightsPanel({
                         </p>
                       </div>
                     )}
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onExecuteInsightAction(
+                          insight
+                        )
+                      }
+                      disabled={!hasAction}
+                      className="mt-5 w-full rounded-xl border border-cyan-500/40 bg-cyan-950/30 px-4 py-3 font-semibold text-cyan-200 transition hover:bg-cyan-950/50 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      {getActionLabel(
+                        insight
+                      )}
+                    </button>
                   </article>
                 );
               }

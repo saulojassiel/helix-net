@@ -4,12 +4,19 @@ import { NextResponse } from "next/server";
 import type {
   AIRelationType,
   AnalyzeGraphInput,
+  GraphInsightActionKind,
   GraphInsightKind,
 } from "@/types/ai";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
+/*
+ * =========================
+ * TIPOS PERMITIDOS
+ * =========================
+ */
 
 const insightKinds: GraphInsightKind[] = [
   "knowledge_gap",
@@ -28,9 +35,17 @@ const relationTypes: AIRelationType[] = [
   "demuestra",
 ];
 
+const actionKinds: GraphInsightActionKind[] = [
+  "select_node",
+  "select_edge",
+  "prepare_connection",
+  "expand_node",
+  "review_contradiction",
+];
+
 /*
  * =========================
- * CONTROL DE COSTO / CONTEXTO
+ * CONTROL DE COSTO
  * =========================
  */
 
@@ -42,6 +57,12 @@ const MAX_EDGE_DESCRIPTION = 400;
 
 const MAX_EVIDENCE_PER_EDGE = 3;
 const MAX_EVIDENCE_CONTENT = 500;
+
+/*
+ * =========================
+ * UTILIDADES
+ * =========================
+ */
 
 function limitText(
   value: string | null | undefined,
@@ -55,7 +76,10 @@ function limitText(
     return value;
   }
 
-  return `${value.slice(0, maxLength)}…`;
+  return `${value.slice(
+    0,
+    maxLength
+  )}…`;
 }
 
 /*
@@ -113,7 +137,8 @@ function prepareGraph(
         targetNodeId:
           edge.targetNodeId,
 
-        type: edge.type,
+        type:
+          edge.type,
 
         strength:
           edge.strength,
@@ -173,6 +198,48 @@ function prepareGraph(
 
 /*
  * =========================
+ * TIPO DE RESPUESTA IA
+ * =========================
+ */
+
+interface RawInsight {
+  kind: GraphInsightKind;
+
+  title: string;
+
+  description: string;
+
+  confidence: number;
+
+  relatedNodeIds: string[];
+
+  relatedEdgeIds: string[];
+
+  suggestedAction: string;
+
+  action: {
+    kind:
+      GraphInsightActionKind;
+
+    nodeId:
+      string | null;
+
+    edgeId:
+      string | null;
+
+    sourceNodeId:
+      string | null;
+
+    targetNodeId:
+      string | null;
+
+    relationType:
+      AIRelationType | null;
+  };
+}
+
+/*
+ * =========================
  * POST
  * =========================
  */
@@ -187,7 +254,9 @@ export async function POST(
      * =========================
      */
 
-    if (!process.env.OPENAI_API_KEY) {
+    if (
+      !process.env.OPENAI_API_KEY
+    ) {
       return NextResponse.json(
         {
           error:
@@ -230,8 +299,14 @@ export async function POST(
       );
     }
 
+    /*
+     * No gastamos una llamada
+     * si no existen nodos.
+     */
+
     if (
-      body.graphContext.nodes.length === 0
+      body.graphContext.nodes
+        .length === 0
     ) {
       return NextResponse.json(
         {
@@ -242,7 +317,7 @@ export async function POST(
 
     /*
      * =========================
-     * CONTEXTO LIMITADO
+     * PREPARAR CONTEXTO
      * =========================
      */
 
@@ -287,12 +362,11 @@ por nodos y relaciones semánticas.
 
 Tu objetivo NO es resumir el grafo.
 
-Tu objetivo es detectar oportunidades,
+Debes detectar oportunidades,
 debilidades y anomalías estructurales
 que puedan mejorar su calidad.
 
-Debes buscar únicamente insights de
-estos tipos:
+TIPOS DE INSIGHT
 
 ${insightKinds.join(", ")}
 
@@ -306,45 +380,34 @@ grafo que requiere conocimiento adicional.
 potential_contradiction:
 Dos nodos, relaciones o afirmaciones
 parecen incompatibles o requieren
-reconciliación. No afirmes que existe
-una contradicción definitiva si el grafo
-no ofrece evidencia suficiente.
+reconciliación.
 
 weak_node:
 Un nodo está aislado, poco desarrollado,
 sin relaciones útiles o con contenido
-demasiado débil para su papel actual.
+demasiado débil.
 
 weak_relation:
 Una relación tiene confianza baja,
 evidencia insuficiente, descripción
-débil o una semántica que merece revisión.
+débil o semántica cuestionable.
 
 missing_connection:
-Dos o más nodos parecen justificar una
-relación que actualmente no existe.
+Dos nodos parecen justificar una relación
+que actualmente no existe.
 
-REGLAS
+REGLAS GENERALES
 
 - Basa los insights exclusivamente en
-  el grafo proporcionado.
+  el Knowledge Graph proporcionado.
 
-- No inventes fuentes ni evidencia.
+- No inventes fuentes.
 
-- No afirmes certeza científica.
+- No inventes evidencia.
 
-- Usa confidence para expresar qué tan
-  sólido es el insight basándote en la
-  estructura disponible.
+- No inventes IDs.
 
-- relatedNodeIds solo puede contener IDs
-  que existan en el grafo proporcionado.
-
-- relatedEdgeIds solo puede contener IDs
-  que existan en el grafo proporcionado.
-
-- suggestedAction debe proponer una acción
-  concreta que un usuario pueda ejecutar.
+- No presentes hipótesis como hechos.
 
 - Evita insights duplicados.
 
@@ -352,7 +415,85 @@ REGLAS
 
 - Devuelve entre 1 y 5 insights.
 
-TIPOS DE RELACIÓN PRESENTES EN HELIX
+- relatedNodeIds solo puede contener
+  IDs existentes en el grafo.
+
+- relatedEdgeIds solo puede contener
+  IDs existentes en el grafo.
+
+- confidence representa la confianza
+  estructural en el insight.
+
+- suggestedAction debe explicar en
+  lenguaje humano qué conviene hacer.
+
+ACCIONES EJECUTABLES
+
+Cada insight DEBE incluir una propiedad
+"action".
+
+Los tipos permitidos son:
+
+${actionKinds.join(", ")}
+
+Usa:
+
+select_node
+cuando el problema principal esté
+concentrado en un nodo existente.
+
+select_edge
+cuando una relación existente necesite
+ser inspeccionada.
+
+prepare_connection
+cuando detectes una conexión faltante
+entre dos nodos existentes.
+
+expand_node
+cuando exista un hueco de conocimiento
+que convenga investigar desde un nodo.
+
+review_contradiction
+cuando haya una contradicción potencial.
+
+REGLAS PARA ACTION
+
+Para select_node:
+
+- nodeId debe contener un ID real.
+- los otros identificadores deben ser null.
+
+Para expand_node:
+
+- nodeId debe contener un ID real.
+- los demás identificadores deben ser null.
+
+Para select_edge:
+
+- edgeId debe contener un ID real.
+- los demás identificadores deben ser null.
+
+Para prepare_connection:
+
+- sourceNodeId debe existir.
+- targetNodeId debe existir.
+- ambos deben ser diferentes.
+- relationType debe indicar la relación
+  semántica propuesta.
+- nodeId y edgeId deben ser null.
+
+Para review_contradiction:
+
+- usa edgeId si existe una relación
+  concreta que deba revisarse.
+
+- si no existe una relación apropiada,
+  utiliza nodeId con el nodo más relevante.
+
+Nunca inventes identificadores.
+
+RELACIONES PERMITIDAS
 
 ${relationTypes.join(", ")}
             `.trim(),
@@ -367,7 +508,8 @@ Analiza el siguiente Knowledge Graph:
 ${graphText}
 
 Detecta los insights estructurales más
-útiles para mejorar este universo.
+útiles y proporciona para cada uno una
+acción ejecutable compatible con HELIX.
             `.trim(),
           },
         ],
@@ -384,7 +526,7 @@ Detecta los insights estructurales más
               "json_schema",
 
             name:
-              "helix_graph_analysis",
+              "helix_graph_analysis_actions",
 
             strict: true,
 
@@ -458,6 +600,80 @@ Detecta los insights estructurales más
 
                         minLength: 1,
                       },
+
+                      /*
+                       * =================
+                       * AI-005
+                       * ACTION
+                       * =================
+                       */
+
+                      action: {
+                        type:
+                          "object",
+
+                        properties: {
+                          kind: {
+                            type:
+                              "string",
+
+                            enum:
+                              actionKinds,
+                          },
+
+                          nodeId: {
+                            type: [
+                              "string",
+                              "null",
+                            ],
+                          },
+
+                          edgeId: {
+                            type: [
+                              "string",
+                              "null",
+                            ],
+                          },
+
+                          sourceNodeId: {
+                            type: [
+                              "string",
+                              "null",
+                            ],
+                          },
+
+                          targetNodeId: {
+                            type: [
+                              "string",
+                              "null",
+                            ],
+                          },
+
+                          relationType: {
+                            type: [
+                              "string",
+                              "null",
+                            ],
+
+                            enum: [
+                              ...relationTypes,
+                              null,
+                            ],
+                          },
+                        },
+
+                        required: [
+                          "kind",
+                          "nodeId",
+                          "edgeId",
+                          "sourceNodeId",
+                          "targetNodeId",
+                          "relationType",
+                        ],
+
+                        additionalProperties:
+                          false,
+                      },
                     },
 
                     required: [
@@ -468,6 +684,7 @@ Detecta los insights estructurales más
                       "relatedNodeIds",
                       "relatedEdgeIds",
                       "suggestedAction",
+                      "action",
                     ],
 
                     additionalProperties:
@@ -489,47 +706,35 @@ Detecta los insights estructurales más
 
     /*
      * =========================
-     * PARSE
+     * COMPROBAR RESPUESTA
      * =========================
      */
 
-    if (!response.output_text) {
+    if (
+      !response.output_text
+    ) {
       throw new Error(
         "OpenAI no devolvió análisis."
       );
     }
 
+    /*
+     * =========================
+     * PARSE
+     * =========================
+     */
+
     const parsed =
       JSON.parse(
         response.output_text
       ) as {
-        insights: Array<{
-          kind:
-            GraphInsightKind;
-
-          title:
-            string;
-
-          description:
-            string;
-
-          confidence:
-            number;
-
-          relatedNodeIds:
-            string[];
-
-          relatedEdgeIds:
-            string[];
-
-          suggestedAction:
-            string;
-        }>;
+        insights:
+          RawInsight[];
       };
 
     /*
      * =========================
-     * SEGURIDAD DE REFERENCIAS
+     * IDS VÁLIDOS
      * =========================
      */
 
@@ -549,13 +754,186 @@ Detecta los insights estructurales más
         )
       );
 
+    /*
+     * =========================
+     * SANITIZAR ACTION
+     * =========================
+     */
+
+    function sanitizeAction(
+      insight: RawInsight
+    ) {
+      const action =
+        insight.action;
+
+      const nodeId =
+        action.nodeId &&
+        validNodeIds.has(
+          action.nodeId
+        )
+          ? action.nodeId
+          : undefined;
+
+      const edgeId =
+        action.edgeId &&
+        validEdgeIds.has(
+          action.edgeId
+        )
+          ? action.edgeId
+          : undefined;
+
+      const sourceNodeId =
+        action.sourceNodeId &&
+        validNodeIds.has(
+          action.sourceNodeId
+        )
+          ? action.sourceNodeId
+          : undefined;
+
+      const targetNodeId =
+        action.targetNodeId &&
+        validNodeIds.has(
+          action.targetNodeId
+        )
+          ? action.targetNodeId
+          : undefined;
+
+      const relationType =
+        action.relationType &&
+        relationTypes.includes(
+          action.relationType
+        )
+          ? action.relationType
+          : undefined;
+
+      /*
+       * Validación específica
+       * por tipo de acción.
+       */
+
+      switch (
+        action.kind
+      ) {
+        case "select_node": {
+          if (!nodeId) {
+            return undefined;
+          }
+
+          return {
+            kind:
+              "select_node" as const,
+
+            nodeId,
+          };
+        }
+
+        case "expand_node": {
+          if (!nodeId) {
+            return undefined;
+          }
+
+          return {
+            kind:
+              "expand_node" as const,
+
+            nodeId,
+          };
+        }
+
+        case "select_edge": {
+          if (!edgeId) {
+            return undefined;
+          }
+
+          return {
+            kind:
+              "select_edge" as const,
+
+            edgeId,
+          };
+        }
+
+        case "prepare_connection": {
+          if (
+            !sourceNodeId ||
+            !targetNodeId ||
+            sourceNodeId ===
+              targetNodeId ||
+            !relationType
+          ) {
+            return undefined;
+          }
+
+          return {
+            kind:
+              "prepare_connection" as const,
+
+            sourceNodeId,
+            targetNodeId,
+            relationType,
+          };
+        }
+
+        case "review_contradiction": {
+          /*
+           * Preferimos edge
+           * cuando exista.
+           */
+
+          if (edgeId) {
+            return {
+              kind:
+                "review_contradiction" as const,
+
+              edgeId,
+            };
+          }
+
+          if (nodeId) {
+            return {
+              kind:
+                "review_contradiction" as const,
+
+              nodeId,
+            };
+          }
+
+          return undefined;
+        }
+
+        default:
+          return undefined;
+      }
+    }
+
+    /*
+     * =========================
+     * FORMATO FINAL HELIX
+     * =========================
+     */
+
     const insights =
       parsed.insights.map(
         (insight) => ({
           id:
             crypto.randomUUID(),
 
-          ...insight,
+          kind:
+            insight.kind,
+
+          title:
+            insight.title,
+
+          description:
+            insight.description,
+
+          confidence:
+            insight.confidence,
+
+          /*
+           * Eliminamos IDs
+           * inventados.
+           */
 
           relatedNodeIds:
             insight.relatedNodeIds.filter(
@@ -573,6 +951,18 @@ Detecta los insights estructurales más
                 )
             ),
 
+          suggestedAction:
+            insight.suggestedAction,
+
+          /*
+           * Acción ya validada.
+           */
+
+          action:
+            sanitizeAction(
+              insight
+            ),
+
           metadata: {
             generatedBy:
               "openai",
@@ -588,9 +978,18 @@ Detecta los insights estructurales más
 
             analyzedEdges:
               preparedGraph.analyzedEdges,
+
+            actionsEnabled:
+              true,
           },
         })
       );
+
+    /*
+     * =========================
+     * RESPONSE
+     * =========================
+     */
 
     return NextResponse.json({
       insights,

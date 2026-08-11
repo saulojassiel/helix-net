@@ -128,6 +128,8 @@ export interface GraphInsight {
   suggestedAction?: string;
 
   metadata?: Record<string, unknown>;
+  
+  action?: GraphInsightAction;
 }
 
 export interface AnalyzeGraphInput {
@@ -141,4 +143,24 @@ export interface AnalyzeGraphInput {
 
 export interface AnalyzeGraphResult {
   insights: GraphInsight[];
+}
+export type GraphInsightActionKind =
+  | "select_node"
+  | "select_edge"
+  | "prepare_connection"
+  | "expand_node"
+  | "review_contradiction";
+
+export interface GraphInsightAction {
+  kind: GraphInsightActionKind;
+
+  nodeId?: string;
+
+  edgeId?: string;
+
+  sourceNodeId?: string;
+
+  targetNodeId?: string;
+
+  relationType?: AIRelationType;
 }
