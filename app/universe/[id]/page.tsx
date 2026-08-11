@@ -38,10 +38,8 @@ export default function UniversePage() {
     title,
     content,
     isCreating,
-
     setTitle,
     setContent,
-
     addIdea,
 
     nodeTitle,
@@ -118,6 +116,7 @@ export default function UniversePage() {
     isExpandingIdea,
     aiErrorMessage,
     expandSelectedNode,
+    acceptAISuggestion,
 
     loading,
     errorMessage,
@@ -285,6 +284,7 @@ export default function UniversePage() {
               isExpanding={isExpandingIdea}
               errorMessage={aiErrorMessage}
               onExpand={expandSelectedNode}
+              onAcceptSuggestion={acceptAISuggestion}
             />
           </div>
         )

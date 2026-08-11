@@ -10,6 +10,9 @@ interface AISuggestionsPanelProps {
   isExpanding: boolean;
   errorMessage: string;
   onExpand: () => void;
+  onAcceptSuggestion: (
+    suggestion: AISuggestion
+  ) => void;
 }
 
 function getKindLabel(
@@ -42,6 +45,7 @@ export default function AISuggestionsPanel({
   isExpanding,
   errorMessage,
   onExpand,
+  onAcceptSuggestion,
 }: AISuggestionsPanelProps) {
   return (
     <section className="rounded-3xl border border-violet-500/30 bg-zinc-950 p-6">
@@ -152,6 +156,18 @@ export default function AISuggestionsPanel({
                       </span>
                     </div>
                   )}
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onAcceptSuggestion(
+                        suggestion
+                      )
+                    }
+                    className="mt-5 w-full rounded-xl border border-cyan-500/40 bg-cyan-950/30 px-4 py-3 font-semibold text-cyan-200 transition hover:bg-cyan-950/50"
+                  >
+                    Aceptar sugerencia
+                  </button>
                 </article>
               )
             )}

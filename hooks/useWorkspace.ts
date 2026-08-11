@@ -1442,6 +1442,73 @@ export function useWorkspace(
    * =========================
    */
 
+  async function acceptAISuggestion(
+  suggestion: AISuggestion
+) {
+  if (!graph) {
+    return;
+  }
+
+  const sourceNode = nodes.find(
+    (node) =>
+      node.id ===
+      suggestion.sourceNodeId
+  );
+
+  if (!sourceNode) {
+    alert(
+      "No se encontró el nodo origen de la sugerencia."
+    );
+
+    return;
+  }
+
+  try {
+    const newNodeId =
+      await universeService.addIdea(
+        universeId,
+        graph.id,
+        suggestion.title,
+        suggestion.content
+      );
+
+    const newNodeIdString =
+      typeof newNodeId === "string"
+        ? newNodeId
+        : String(newNodeId);
+
+    if (
+      suggestion.proposedRelationType
+    ) {
+      await universeService.connectIdeas(
+        universeId,
+        sourceNode.id,
+        newNodeIdString,
+        suggestion.proposedRelationType,
+        1,
+        suggestion.confidence,
+        suggestion.reasoning ?? null
+      );
+    }
+
+    setAiSuggestions(
+      (current) =>
+        current.filter(
+          (item) =>
+            item.id !==
+            suggestion.id
+        )
+    );
+
+    await loadWorkspace();
+  } catch (error) {
+    alert(
+      error instanceof Error
+        ? error.message
+        : "No se pudo aceptar la sugerencia."
+    );
+  }
+}
   return {
     universe,
     graph,
@@ -1579,6 +1646,7 @@ export function useWorkspace(
     isExpandingIdea,
     aiErrorMessage,
     expandSelectedNode,
+    acceptAISuggestion,
 
     /*
      * General
