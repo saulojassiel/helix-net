@@ -248,6 +248,38 @@ export function useWorkspace(
 
   /*
    * =========================
+   * KE-005
+   * FILTROS DEL KNOWLEDGE GRAPH
+   * =========================
+   */
+
+  const [
+    nodeStatusFilter,
+    setNodeStatusFilter,
+  ] = useState("ALL");
+
+  const [
+    minimumPriority,
+    setMinimumPriority,
+  ] = useState(0);
+
+  const [
+    relationTypeFilter,
+    setRelationTypeFilter,
+  ] = useState("ALL");
+
+  const [
+    minimumConfidence,
+    setMinimumConfidence,
+  ] = useState(0);
+
+  const [
+    minimumStrength,
+    setMinimumStrength,
+  ] = useState(0);
+
+  /*
+   * =========================
    * CARGAR WORKSPACE
    * =========================
    */
@@ -402,6 +434,110 @@ export function useWorkspace(
 
   /*
    * =========================
+   * KE-005.2
+   * NODOS FILTRADOS
+   * =========================
+   */
+
+  const filteredNodes =
+    useMemo(
+      () =>
+        nodes.filter(
+          (node) => {
+            const statusMatches =
+              nodeStatusFilter ===
+                "ALL" ||
+              node.status ===
+                nodeStatusFilter;
+
+            const priorityMatches =
+              node.priority >=
+              minimumPriority;
+
+            return (
+              statusMatches &&
+              priorityMatches
+            );
+          }
+        ),
+      [
+        nodes,
+        nodeStatusFilter,
+        minimumPriority,
+      ]
+    );
+
+  /*
+   * =========================
+   * IDS DE NODOS VISIBLES
+   * =========================
+   */
+
+  const visibleNodeIds =
+    useMemo(
+      () =>
+        new Set(
+          filteredNodes.map(
+            (node) =>
+              node.id
+          )
+        ),
+      [filteredNodes]
+    );
+
+  /*
+   * =========================
+   * KE-005.2
+   * RELACIONES FILTRADAS
+   * =========================
+   */
+
+  const filteredEdges =
+    useMemo(
+      () =>
+        edges.filter(
+          (edge) => {
+            const typeMatches =
+              relationTypeFilter ===
+                "ALL" ||
+              edge.type ===
+                relationTypeFilter;
+
+            const confidenceMatches =
+              edge.confidence >=
+              minimumConfidence;
+
+            const strengthMatches =
+              edge.strength >=
+              minimumStrength;
+
+            const nodesVisible =
+              visibleNodeIds.has(
+                edge.source_node_id
+              ) &&
+              visibleNodeIds.has(
+                edge.target_node_id
+              );
+
+            return (
+              typeMatches &&
+              confidenceMatches &&
+              strengthMatches &&
+              nodesVisible
+            );
+          }
+        ),
+      [
+        edges,
+        relationTypeFilter,
+        minimumConfidence,
+        minimumStrength,
+        visibleNodeIds,
+      ]
+    );
+
+  /*
+   * =========================
    * FLOW NODES
    * =========================
    */
@@ -409,7 +545,7 @@ export function useWorkspace(
   const flowNodes =
     useMemo<FlowNode[]>(
       () =>
-        nodes.map(
+        filteredNodes.map(
           (
             node,
             index
@@ -422,8 +558,7 @@ export function useWorkspace(
               x:
                 node.position_x ===
                 0
-                  ? (index %
-                      3) *
+                  ? (index % 3) *
                     280
                   : node.position_x,
 
@@ -431,8 +566,7 @@ export function useWorkspace(
                 node.position_y ===
                 0
                   ? Math.floor(
-                      index /
-                        3
+                      index / 3
                     ) *
                     180
                   : node.position_y,
@@ -451,7 +585,7 @@ export function useWorkspace(
           })
         ),
 
-      [nodes]
+      [filteredNodes]
     );
 
   /*
@@ -463,7 +597,7 @@ export function useWorkspace(
   const flowEdges =
     useMemo<FlowEdge[]>(
       () =>
-        edges.map(
+        filteredEdges.map(
           (edge) => {
             const confidence =
               Math.max(
@@ -498,7 +632,6 @@ export function useWorkspace(
                 ? {
                     stroke:
                       "#ef4444",
-
                     strokeDasharray:
                       "8 6",
                   }
@@ -522,7 +655,6 @@ export function useWorkspace(
                   ? {
                       stroke:
                         "#3b82f6",
-
                       strokeDasharray:
                         "4 4",
                     }
@@ -563,16 +695,13 @@ export function useWorkspace(
 
               style: {
                 ...relationStyle,
-
                 strokeWidth,
-
                 opacity,
               },
 
               labelStyle: {
                 fill:
                   "#d4d4d8",
-
                 fontSize:
                   12,
               },
@@ -600,7 +729,7 @@ export function useWorkspace(
           }
         ),
 
-      [edges]
+      [filteredEdges]
     );
 
   /*
@@ -881,17 +1010,6 @@ export function useWorkspace(
       return;
     }
 
-    /*
-     * Por ahora evitamos
-     * más de una conexión
-     * directa entre el mismo
-     * origen y destino.
-     *
-     * Más adelante podemos
-     * permitir varias si tienen
-     * semánticas distintas.
-     */
-
     const alreadyExists =
       edges.some(
         (edge) =>
@@ -909,22 +1027,9 @@ export function useWorkspace(
       return;
     }
 
-    /*
-     * NO guardamos todavía
-     * en Supabase.
-     *
-     * Dejamos la conexión
-     * esperando confirmación.
-     */
-
     setPendingConnection(
       connection
     );
-
-    /*
-     * Valores iniciales
-     * del futuro editor.
-     */
 
     setPendingRelationType(
       "inspira"
@@ -942,17 +1047,115 @@ export function useWorkspace(
       ""
     );
 
-    /*
-     * Limpiamos selección
-     * anterior.
-     */
-
     setSelectedNodeId(
       null
     );
 
     setSelectedEdgeId(
       null
+    );
+  }
+
+  /*
+   * =========================
+   * CREAR RELACIÓN PENDIENTE
+   * =========================
+   */
+
+  async function createPendingRelation() {
+    if (!pendingConnection) {
+      return;
+    }
+
+    const source =
+      pendingConnection.source;
+
+    const target =
+      pendingConnection.target;
+
+    if (
+      !source ||
+      !target
+    ) {
+      return;
+    }
+
+    try {
+      setIsCreatingRelation(
+        true
+      );
+
+      await universeService.connectIdeas(
+        universeId,
+        source,
+        target,
+        pendingRelationType,
+        pendingRelationStrength,
+        pendingRelationConfidence,
+        pendingRelationDescription.trim() ||
+          null
+      );
+
+      setPendingConnection(
+        null
+      );
+
+      setPendingRelationType(
+        "inspira"
+      );
+
+      setPendingRelationStrength(
+        1
+      );
+
+      setPendingRelationConfidence(
+        1
+      );
+
+      setPendingRelationDescription(
+        ""
+      );
+
+      await loadWorkspace();
+    } catch (error) {
+      alert(
+        error instanceof
+          Error
+          ? error.message
+          : "No se pudo crear la relación."
+      );
+    } finally {
+      setIsCreatingRelation(
+        false
+      );
+    }
+  }
+
+  /*
+   * =========================
+   * CANCELAR RELACIÓN
+   * =========================
+   */
+
+  function cancelPendingRelation() {
+    setPendingConnection(
+      null
+    );
+
+    setPendingRelationType(
+      "inspira"
+    );
+
+    setPendingRelationStrength(
+      1
+    );
+
+    setPendingRelationConfidence(
+      1
+    );
+
+    setPendingRelationDescription(
+      ""
     );
   }
 
@@ -1122,63 +1325,18 @@ export function useWorkspace(
    * =========================
    */
 
- async function createPendingRelation() {
-  if (!pendingConnection) {
-    return;
-  }
-
-  const source = pendingConnection.source;
-  const target = pendingConnection.target;
-
-  if (!source || !target) {
-    return;
-  }
-
-  try {
-    setIsCreatingRelation(true);
-
-    await universeService.connectIdeas(
-      universeId,
-      source,
-      target,
-      pendingRelationType,
-      pendingRelationStrength,
-      pendingRelationConfidence,
-      pendingRelationDescription.trim() || null
-    );
-
-    setPendingConnection(null);
-
-    setPendingRelationType("inspira");
-    setPendingRelationStrength(1);
-    setPendingRelationConfidence(1);
-    setPendingRelationDescription("");
-
-    await loadWorkspace();
-  } catch (error) {
-    alert(
-      error instanceof Error
-        ? error.message
-        : "No se pudo crear la relación."
-    );
-  } finally {
-    setIsCreatingRelation(false);
-  }
-}
-
-function cancelPendingRelation() {
-  setPendingConnection(null);
-
-  setPendingRelationType("inspira");
-  setPendingRelationStrength(1);
-  setPendingRelationConfidence(1);
-  setPendingRelationDescription("");
-}
   return {
     universe,
     graph,
     nodes,
     edges,
+
+    /*
+     * KE-005.2
+     */
+
+    filteredNodes,
+    filteredEdges,
 
     /*
      * React Flow
@@ -1203,7 +1361,6 @@ function cancelPendingRelation() {
 
     /*
      * KE-004
-     * conexión pendiente
      */
 
     pendingConnection,
@@ -1224,7 +1381,27 @@ function cancelPendingRelation() {
     isCreatingRelation,
 
     createPendingRelation,
-cancelPendingRelation,
+    cancelPendingRelation,
+
+    /*
+     * KE-005
+     * FILTROS
+     */
+
+    nodeStatusFilter,
+    setNodeStatusFilter,
+
+    minimumPriority,
+    setMinimumPriority,
+
+    relationTypeFilter,
+    setRelationTypeFilter,
+
+    minimumConfidence,
+    setMinimumConfidence,
+
+    minimumStrength,
+    setMinimumStrength,
 
     /*
      * Crear idea

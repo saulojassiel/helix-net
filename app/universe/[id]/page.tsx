@@ -5,22 +5,40 @@ import { useParams } from "next/navigation";
 import GraphWorkspace from "@/components/graph/GraphWorkspace";
 import WorkspaceLayout from "@/components/layout/WorkspaceLayout";
 import { AddIdeaPanel } from "@/components/panels/AddIdeaPanel";
+import CreateRelationPanel from "@/components/panels/CreateRelationPanel";
 import ExplorerPanel from "@/components/panels/ExplorerPanel";
+import GraphFiltersPanel from "@/components/panels/GraphFiltersPanel";
 import InspectorPanel from "@/components/panels/InspectorPanel";
 import UniverseHeader from "@/components/universes/UniverseHeader";
 import { useWorkspace } from "@/hooks/useWorkspace";
-import CreateRelationPanel from "@/components/panels/CreateRelationPanel";
 
 export default function UniversePage() {
   const params = useParams<{ id: string }>();
 
   const {
+    /*
+     * =========================
+     * WORKSPACE
+     * =========================
+     */
+
     universe,
     graph,
+
     nodes,
+    edges,
+
+    filteredNodes,
+    filteredEdges,
 
     flowNodes,
     flowEdges,
+
+    /*
+     * =========================
+     * SELECCIÓN
+     * =========================
+     */
 
     selectedNode,
     selectedNodeId,
@@ -28,12 +46,26 @@ export default function UniversePage() {
 
     selectedEdge,
 
+    /*
+     * =========================
+     * CREAR IDEA
+     * =========================
+     */
+
     title,
     content,
     isCreating,
+
     setTitle,
     setContent,
+
     addIdea,
+
+    /*
+     * =========================
+     * EDITOR DE NODOS
+     * =========================
+     */
 
     nodeTitle,
     setNodeTitle,
@@ -50,6 +82,12 @@ export default function UniversePage() {
     isUpdatingNode,
     updateSelectedNode,
 
+    /*
+     * =========================
+     * EDITOR DE RELACIONES
+     * =========================
+     */
+
     edgeType,
     setEdgeType,
 
@@ -65,37 +103,92 @@ export default function UniversePage() {
     isUpdatingEdge,
     updateSelectedEdge,
 
+    /*
+     * =========================
+     * EVIDENCIA
+     * =========================
+     */
+
     evidenceText,
     setEvidenceText,
+
     isAddingEvidence,
     addEvidenceToSelectedEdge,
 
+    /*
+     * =========================
+     * KE-004
+     * CONEXIÓN PENDIENTE
+     * =========================
+     */
+
+    pendingConnection,
+
+    pendingRelationType,
+    setPendingRelationType,
+
+    pendingRelationStrength,
+    setPendingRelationStrength,
+
+    pendingRelationConfidence,
+    setPendingRelationConfidence,
+
+    pendingRelationDescription,
+    setPendingRelationDescription,
+
+    isCreatingRelation,
+
+    createPendingRelation,
+    cancelPendingRelation,
+
+    /*
+     * =========================
+     * KE-005
+     * FILTROS
+     * =========================
+     */
+
+    nodeStatusFilter,
+    setNodeStatusFilter,
+
+    minimumPriority,
+    setMinimumPriority,
+
+    relationTypeFilter,
+    setRelationTypeFilter,
+
+    minimumConfidence,
+    setMinimumConfidence,
+
+    minimumStrength,
+    setMinimumStrength,
+
+    /*
+     * =========================
+     * GENERAL
+     * =========================
+     */
+
     loading,
     errorMessage,
+
+    /*
+     * =========================
+     * REACT FLOW
+     * =========================
+     */
 
     handleNodeDragStop,
     handleNodeClick,
     handleEdgeClick,
     handleConnect,
-    pendingConnection,
-
-pendingRelationType,
-setPendingRelationType,
-
-pendingRelationStrength,
-setPendingRelationStrength,
-
-pendingRelationConfidence,
-setPendingRelationConfidence,
-
-pendingRelationDescription,
-setPendingRelationDescription,
-
-isCreatingRelation,
-
-createPendingRelation,
-cancelPendingRelation,
   } = useWorkspace(params.id);
+
+  /*
+   * =========================
+   * CARGANDO
+   * =========================
+   */
 
   if (loading) {
     return (
@@ -104,6 +197,12 @@ cancelPendingRelation,
       </main>
     );
   }
+
+  /*
+   * =========================
+   * ERROR
+   * =========================
+   */
 
   if (
     errorMessage ||
@@ -123,14 +222,32 @@ cancelPendingRelation,
     );
   }
 
+  /*
+   * =========================
+   * WORKSPACE
+   * =========================
+   */
+
   return (
     <WorkspaceLayout
+      /*
+       * =========================
+       * HEADER
+       * =========================
+       */
+
       header={
         <UniverseHeader
           title={universe.title}
           description={universe.description}
         />
       }
+
+      /*
+       * =========================
+       * COLUMNA IZQUIERDA
+       * =========================
+       */
 
       explorer={
         <>
@@ -148,83 +265,252 @@ cancelPendingRelation,
             selectedNodeId={selectedNodeId}
             onSelectNode={setSelectedNodeId}
           />
+
+          <GraphFiltersPanel
+            nodeStatusFilter={
+              nodeStatusFilter
+            }
+            onNodeStatusFilterChange={
+              setNodeStatusFilter
+            }
+
+            minimumPriority={
+              minimumPriority
+            }
+            onMinimumPriorityChange={
+              setMinimumPriority
+            }
+
+            relationTypeFilter={
+              relationTypeFilter
+            }
+            onRelationTypeFilterChange={
+              setRelationTypeFilter
+            }
+
+            minimumConfidence={
+              minimumConfidence
+            }
+            onMinimumConfidenceChange={
+              setMinimumConfidence
+            }
+
+            minimumStrength={
+              minimumStrength
+            }
+            onMinimumStrengthChange={
+              setMinimumStrength
+            }
+
+            visibleNodes={
+              filteredNodes.length
+            }
+            totalNodes={
+              nodes.length
+            }
+
+            visibleEdges={
+              filteredEdges.length
+            }
+            totalEdges={
+              edges.length
+            }
+          />
         </>
       }
+
+      /*
+       * =========================
+       * GRAFO CENTRAL
+       * =========================
+       */
 
       graph={
         <GraphWorkspace
           nodes={flowNodes}
           edges={flowEdges}
-          onNodeDragStop={handleNodeDragStop}
-          onConnect={handleConnect}
-          onNodeClick={handleNodeClick}
-          onEdgeClick={handleEdgeClick}
+          onNodeDragStop={
+            handleNodeDragStop
+          }
+          onConnect={
+            handleConnect
+          }
+          onNodeClick={
+            handleNodeClick
+          }
+          onEdgeClick={
+            handleEdgeClick
+          }
         />
       }
 
-     inspector={
-  pendingConnection ? (
-    <CreateRelationPanel
-      relationType={pendingRelationType}
-      onRelationTypeChange={setPendingRelationType}
+      /*
+       * =========================
+       * COLUMNA DERECHA
+       * =========================
+       */
 
-      strength={pendingRelationStrength}
-      onStrengthChange={setPendingRelationStrength}
+      inspector={
+        pendingConnection ? (
+          /*
+           * =========================
+           * CREAR RELACIÓN
+           * =========================
+           */
 
-      confidence={pendingRelationConfidence}
-      onConfidenceChange={setPendingRelationConfidence}
+          <CreateRelationPanel
+            relationType={
+              pendingRelationType
+            }
+            onRelationTypeChange={
+              setPendingRelationType
+            }
 
-      description={pendingRelationDescription}
-      onDescriptionChange={setPendingRelationDescription}
+            strength={
+              pendingRelationStrength
+            }
+            onStrengthChange={
+              setPendingRelationStrength
+            }
 
-      isCreating={isCreatingRelation}
+            confidence={
+              pendingRelationConfidence
+            }
+            onConfidenceChange={
+              setPendingRelationConfidence
+            }
 
-      onCreate={createPendingRelation}
-      onCancel={cancelPendingRelation}
-    />
-  ) : (
-    <InspectorPanel
-      node={selectedNode}
-      edge={selectedEdge}
+            description={
+              pendingRelationDescription
+            }
+            onDescriptionChange={
+              setPendingRelationDescription
+            }
 
-      nodeTitle={nodeTitle}
-      onNodeTitleChange={setNodeTitle}
+            isCreating={
+              isCreatingRelation
+            }
 
-      nodeContent={nodeContent}
-      onNodeContentChange={setNodeContent}
+            onCreate={
+              createPendingRelation
+            }
+            onCancel={
+              cancelPendingRelation
+            }
+          />
+        ) : (
+          /*
+           * =========================
+           * INSPECTOR
+           * =========================
+           */
 
-      nodeStatus={nodeStatus}
-      onNodeStatusChange={setNodeStatus}
+          <InspectorPanel
+            /*
+             * Nodo / relación
+             */
 
-      nodePriority={nodePriority}
-      onNodePriorityChange={setNodePriority}
+            node={selectedNode}
+            edge={selectedEdge}
 
-      isUpdatingNode={isUpdatingNode}
-      onUpdateNode={updateSelectedNode}
+            /*
+             * Editor nodo
+             */
 
-      edgeType={edgeType}
-      onEdgeTypeChange={setEdgeType}
+            nodeTitle={
+              nodeTitle
+            }
+            onNodeTitleChange={
+              setNodeTitle
+            }
 
-      edgeStrength={edgeStrength}
-      onEdgeStrengthChange={setEdgeStrength}
+            nodeContent={
+              nodeContent
+            }
+            onNodeContentChange={
+              setNodeContent
+            }
 
-      edgeConfidence={edgeConfidence}
-      onEdgeConfidenceChange={setEdgeConfidence}
+            nodeStatus={
+              nodeStatus
+            }
+            onNodeStatusChange={
+              setNodeStatus
+            }
 
-      edgeDescription={edgeDescription}
-      onEdgeDescriptionChange={setEdgeDescription}
+            nodePriority={
+              nodePriority
+            }
+            onNodePriorityChange={
+              setNodePriority
+            }
 
-      isUpdatingEdge={isUpdatingEdge}
-      onUpdateEdge={updateSelectedEdge}
+            isUpdatingNode={
+              isUpdatingNode
+            }
+            onUpdateNode={
+              updateSelectedNode
+            }
 
-      evidenceText={evidenceText}
-      onEvidenceTextChange={setEvidenceText}
+            /*
+             * Editor relación
+             */
 
-      isAddingEvidence={isAddingEvidence}
-      onAddEvidence={addEvidenceToSelectedEdge}
-    />
-  )
-}
+            edgeType={
+              edgeType
+            }
+            onEdgeTypeChange={
+              setEdgeType
+            }
+
+            edgeStrength={
+              edgeStrength
+            }
+            onEdgeStrengthChange={
+              setEdgeStrength
+            }
+
+            edgeConfidence={
+              edgeConfidence
+            }
+            onEdgeConfidenceChange={
+              setEdgeConfidence
+            }
+
+            edgeDescription={
+              edgeDescription
+            }
+            onEdgeDescriptionChange={
+              setEdgeDescription
+            }
+
+            isUpdatingEdge={
+              isUpdatingEdge
+            }
+            onUpdateEdge={
+              updateSelectedEdge
+            }
+
+            /*
+             * Evidencia
+             */
+
+            evidenceText={
+              evidenceText
+            }
+            onEvidenceTextChange={
+              setEvidenceText
+            }
+
+            isAddingEvidence={
+              isAddingEvidence
+            }
+            onAddEvidence={
+              addEvidenceToSelectedEdge
+            }
+          />
+        )
+      }
     />
   );
 }
