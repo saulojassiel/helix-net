@@ -19,7 +19,20 @@ import type {
 import { supabase } from "@/lib/supabase";
 import { UniverseService } from "@/services/UniverseService";
 
-const universeService = new UniverseService();
+import { AIService } from "@/services/AIService";
+import { MockAIProvider } from "@/services/ai/MockAIProvider";
+
+import type {
+  AISuggestion,
+} from "@/types/ai";
+
+const universeService =
+  new UniverseService();
+
+const aiService =
+  new AIService(
+    new MockAIProvider()
+  );
 
 export interface WorkspaceUniverse {
   id: string;
@@ -63,6 +76,12 @@ export interface WorkspaceEdge {
 export function useWorkspace(
   universeId: string
 ) {
+  /*
+   * =========================
+   * DATA
+   * =========================
+   */
+
   const [universe, setUniverse] =
     useState<WorkspaceUniverse | null>(null);
 
@@ -109,11 +128,15 @@ export function useWorkspace(
    * =========================
    */
 
-  const [title, setTitle] =
-    useState("");
+  const [
+    title,
+    setTitle,
+  ] = useState("");
 
-  const [content, setContent] =
-    useState("");
+  const [
+    content,
+    setContent,
+  ] = useState("");
 
   const [
     isCreating,
@@ -232,24 +255,8 @@ export function useWorkspace(
 
   /*
    * =========================
-   * ESTADO GENERAL
-   * =========================
-   */
-
-  const [
-    loading,
-    setLoading,
-  ] = useState(true);
-
-  const [
-    errorMessage,
-    setErrorMessage,
-  ] = useState("");
-
-  /*
-   * =========================
    * KE-005
-   * FILTROS DEL KNOWLEDGE GRAPH
+   * FILTROS
    * =========================
    */
 
@@ -277,6 +284,44 @@ export function useWorkspace(
     minimumStrength,
     setMinimumStrength,
   ] = useState(0);
+
+  /*
+   * =========================
+   * AI-001
+   * SUGERENCIAS IA
+   * =========================
+   */
+
+  const [
+    aiSuggestions,
+    setAiSuggestions,
+  ] = useState<AISuggestion[]>([]);
+
+  const [
+    isExpandingIdea,
+    setIsExpandingIdea,
+  ] = useState(false);
+
+  const [
+    aiErrorMessage,
+    setAiErrorMessage,
+  ] = useState("");
+
+  /*
+   * =========================
+   * ESTADO GENERAL
+   * =========================
+   */
+
+  const [
+    loading,
+    setLoading,
+  ] = useState(true);
+
+  const [
+    errorMessage,
+    setErrorMessage,
+  ] = useState("");
 
   /*
    * =========================
@@ -469,7 +514,7 @@ export function useWorkspace(
 
   /*
    * =========================
-   * IDS DE NODOS VISIBLES
+   * IDS VISIBLES
    * =========================
    */
 
@@ -488,7 +533,7 @@ export function useWorkspace(
   /*
    * =========================
    * KE-005.2
-   * RELACIONES FILTRADAS
+   * EDGES FILTRADOS
    * =========================
    */
 
@@ -556,15 +601,13 @@ export function useWorkspace(
 
             position: {
               x:
-                node.position_x ===
-                0
+                node.position_x === 0
                   ? (index % 3) *
                     280
                   : node.position_x,
 
               y:
-                node.position_y ===
-                0
+                node.position_y === 0
                   ? Math.floor(
                       index / 3
                     ) *
@@ -859,6 +902,15 @@ export function useWorkspace(
     setNodePriority(
       node.priority
     );
+
+    /*
+     * Limpiamos sugerencias
+     * anteriores al cambiar
+     * de nodo.
+     */
+
+    setAiSuggestions([]);
+    setAiErrorMessage("");
   }
 
   /*
@@ -913,6 +965,9 @@ export function useWorkspace(
     setEvidenceText(
       ""
     );
+
+    setAiSuggestions([]);
+    setAiErrorMessage("");
   }
 
   /*
@@ -1054,11 +1109,14 @@ export function useWorkspace(
     setSelectedEdgeId(
       null
     );
+
+    setAiSuggestions([]);
+    setAiErrorMessage("");
   }
 
   /*
    * =========================
-   * CREAR RELACIÓN PENDIENTE
+   * CREAR RELACIÓN
    * =========================
    */
 
@@ -1321,6 +1379,65 @@ export function useWorkspace(
 
   /*
    * =========================
+   * AI-001
+   * EXPANDIR NODO
+   * =========================
+   */
+
+  async function expandSelectedNode() {
+    if (!selectedNode) {
+      return;
+    }
+
+    try {
+      setIsExpandingIdea(
+        true
+      );
+
+      setAiErrorMessage(
+        ""
+      );
+
+      setAiSuggestions(
+        []
+      );
+
+      const suggestions =
+        await aiService.expandIdea({
+          universeId,
+
+          nodeId:
+            selectedNode.id,
+
+          title:
+            selectedNode.title,
+
+          content:
+            selectedNode.content,
+
+          status:
+            selectedNode.status,
+        });
+
+      setAiSuggestions(
+        suggestions
+      );
+    } catch (error) {
+      setAiErrorMessage(
+        error instanceof
+          Error
+          ? error.message
+          : "No se pudo expandir la idea."
+      );
+    } finally {
+      setIsExpandingIdea(
+        false
+      );
+    }
+  }
+
+  /*
+   * =========================
    * API DEL WORKSPACE
    * =========================
    */
@@ -1328,19 +1445,12 @@ export function useWorkspace(
   return {
     universe,
     graph,
+
     nodes,
     edges,
 
-    /*
-     * KE-005.2
-     */
-
     filteredNodes,
     filteredEdges,
-
-    /*
-     * React Flow
-     */
 
     flowNodes,
     flowEdges,
@@ -1385,7 +1495,6 @@ export function useWorkspace(
 
     /*
      * KE-005
-     * FILTROS
      */
 
     nodeStatusFilter,
@@ -1461,6 +1570,15 @@ export function useWorkspace(
 
     isAddingEvidence,
     addEvidenceToSelectedEdge,
+
+    /*
+     * AI-001
+     */
+
+    aiSuggestions,
+    isExpandingIdea,
+    aiErrorMessage,
+    expandSelectedNode,
 
     /*
      * General

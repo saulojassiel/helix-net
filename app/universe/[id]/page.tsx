@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import GraphWorkspace from "@/components/graph/GraphWorkspace";
 import WorkspaceLayout from "@/components/layout/WorkspaceLayout";
 import { AddIdeaPanel } from "@/components/panels/AddIdeaPanel";
+import AISuggestionsPanel from "@/components/panels/AISuggestionsPanel";
 import CreateRelationPanel from "@/components/panels/CreateRelationPanel";
 import ExplorerPanel from "@/components/panels/ExplorerPanel";
 import GraphFiltersPanel from "@/components/panels/GraphFiltersPanel";
@@ -16,12 +17,6 @@ export default function UniversePage() {
   const params = useParams<{ id: string }>();
 
   const {
-    /*
-     * =========================
-     * WORKSPACE
-     * =========================
-     */
-
     universe,
     graph,
 
@@ -34,23 +29,11 @@ export default function UniversePage() {
     flowNodes,
     flowEdges,
 
-    /*
-     * =========================
-     * SELECCIÓN
-     * =========================
-     */
-
     selectedNode,
     selectedNodeId,
     setSelectedNodeId,
 
     selectedEdge,
-
-    /*
-     * =========================
-     * CREAR IDEA
-     * =========================
-     */
 
     title,
     content,
@@ -60,12 +43,6 @@ export default function UniversePage() {
     setContent,
 
     addIdea,
-
-    /*
-     * =========================
-     * EDITOR DE NODOS
-     * =========================
-     */
 
     nodeTitle,
     setNodeTitle,
@@ -82,12 +59,6 @@ export default function UniversePage() {
     isUpdatingNode,
     updateSelectedNode,
 
-    /*
-     * =========================
-     * EDITOR DE RELACIONES
-     * =========================
-     */
-
     edgeType,
     setEdgeType,
 
@@ -103,24 +74,11 @@ export default function UniversePage() {
     isUpdatingEdge,
     updateSelectedEdge,
 
-    /*
-     * =========================
-     * EVIDENCIA
-     * =========================
-     */
-
     evidenceText,
     setEvidenceText,
 
     isAddingEvidence,
     addEvidenceToSelectedEdge,
-
-    /*
-     * =========================
-     * KE-004
-     * CONEXIÓN PENDIENTE
-     * =========================
-     */
 
     pendingConnection,
 
@@ -141,13 +99,6 @@ export default function UniversePage() {
     createPendingRelation,
     cancelPendingRelation,
 
-    /*
-     * =========================
-     * KE-005
-     * FILTROS
-     * =========================
-     */
-
     nodeStatusFilter,
     setNodeStatusFilter,
 
@@ -163,32 +114,19 @@ export default function UniversePage() {
     minimumStrength,
     setMinimumStrength,
 
-    /*
-     * =========================
-     * GENERAL
-     * =========================
-     */
+    aiSuggestions,
+    isExpandingIdea,
+    aiErrorMessage,
+    expandSelectedNode,
 
     loading,
     errorMessage,
-
-    /*
-     * =========================
-     * REACT FLOW
-     * =========================
-     */
 
     handleNodeDragStop,
     handleNodeClick,
     handleEdgeClick,
     handleConnect,
   } = useWorkspace(params.id);
-
-  /*
-   * =========================
-   * CARGANDO
-   * =========================
-   */
 
   if (loading) {
     return (
@@ -197,12 +135,6 @@ export default function UniversePage() {
       </main>
     );
   }
-
-  /*
-   * =========================
-   * ERROR
-   * =========================
-   */
 
   if (
     errorMessage ||
@@ -222,32 +154,14 @@ export default function UniversePage() {
     );
   }
 
-  /*
-   * =========================
-   * WORKSPACE
-   * =========================
-   */
-
   return (
     <WorkspaceLayout
-      /*
-       * =========================
-       * HEADER
-       * =========================
-       */
-
       header={
         <UniverseHeader
           title={universe.title}
           description={universe.description}
         />
       }
-
-      /*
-       * =========================
-       * COLUMNA IZQUIERDA
-       * =========================
-       */
 
       explorer={
         <>
@@ -267,248 +181,112 @@ export default function UniversePage() {
           />
 
           <GraphFiltersPanel
-            nodeStatusFilter={
-              nodeStatusFilter
-            }
-            onNodeStatusFilterChange={
-              setNodeStatusFilter
-            }
+            nodeStatusFilter={nodeStatusFilter}
+            onNodeStatusFilterChange={setNodeStatusFilter}
 
-            minimumPriority={
-              minimumPriority
-            }
-            onMinimumPriorityChange={
-              setMinimumPriority
-            }
+            minimumPriority={minimumPriority}
+            onMinimumPriorityChange={setMinimumPriority}
 
-            relationTypeFilter={
-              relationTypeFilter
-            }
-            onRelationTypeFilterChange={
-              setRelationTypeFilter
-            }
+            relationTypeFilter={relationTypeFilter}
+            onRelationTypeFilterChange={setRelationTypeFilter}
 
-            minimumConfidence={
-              minimumConfidence
-            }
-            onMinimumConfidenceChange={
-              setMinimumConfidence
-            }
+            minimumConfidence={minimumConfidence}
+            onMinimumConfidenceChange={setMinimumConfidence}
 
-            minimumStrength={
-              minimumStrength
-            }
-            onMinimumStrengthChange={
-              setMinimumStrength
-            }
+            minimumStrength={minimumStrength}
+            onMinimumStrengthChange={setMinimumStrength}
 
-            visibleNodes={
-              filteredNodes.length
-            }
-            totalNodes={
-              nodes.length
-            }
+            visibleNodes={filteredNodes.length}
+            totalNodes={nodes.length}
 
-            visibleEdges={
-              filteredEdges.length
-            }
-            totalEdges={
-              edges.length
-            }
+            visibleEdges={filteredEdges.length}
+            totalEdges={edges.length}
           />
         </>
       }
-
-      /*
-       * =========================
-       * GRAFO CENTRAL
-       * =========================
-       */
 
       graph={
         <GraphWorkspace
           nodes={flowNodes}
           edges={flowEdges}
-          onNodeDragStop={
-            handleNodeDragStop
-          }
-          onConnect={
-            handleConnect
-          }
-          onNodeClick={
-            handleNodeClick
-          }
-          onEdgeClick={
-            handleEdgeClick
-          }
+          onNodeDragStop={handleNodeDragStop}
+          onConnect={handleConnect}
+          onNodeClick={handleNodeClick}
+          onEdgeClick={handleEdgeClick}
         />
       }
 
-      /*
-       * =========================
-       * COLUMNA DERECHA
-       * =========================
-       */
-
       inspector={
         pendingConnection ? (
-          /*
-           * =========================
-           * CREAR RELACIÓN
-           * =========================
-           */
-
           <CreateRelationPanel
-            relationType={
-              pendingRelationType
-            }
-            onRelationTypeChange={
-              setPendingRelationType
-            }
+            relationType={pendingRelationType}
+            onRelationTypeChange={setPendingRelationType}
 
-            strength={
-              pendingRelationStrength
-            }
-            onStrengthChange={
-              setPendingRelationStrength
-            }
+            strength={pendingRelationStrength}
+            onStrengthChange={setPendingRelationStrength}
 
-            confidence={
-              pendingRelationConfidence
-            }
-            onConfidenceChange={
-              setPendingRelationConfidence
-            }
+            confidence={pendingRelationConfidence}
+            onConfidenceChange={setPendingRelationConfidence}
 
-            description={
-              pendingRelationDescription
-            }
-            onDescriptionChange={
-              setPendingRelationDescription
-            }
+            description={pendingRelationDescription}
+            onDescriptionChange={setPendingRelationDescription}
 
-            isCreating={
-              isCreatingRelation
-            }
+            isCreating={isCreatingRelation}
 
-            onCreate={
-              createPendingRelation
-            }
-            onCancel={
-              cancelPendingRelation
-            }
+            onCreate={createPendingRelation}
+            onCancel={cancelPendingRelation}
           />
         ) : (
-          /*
-           * =========================
-           * INSPECTOR
-           * =========================
-           */
+          <div className="space-y-6">
+            <InspectorPanel
+              node={selectedNode}
+              edge={selectedEdge}
 
-          <InspectorPanel
-            /*
-             * Nodo / relación
-             */
+              nodeTitle={nodeTitle}
+              onNodeTitleChange={setNodeTitle}
 
-            node={selectedNode}
-            edge={selectedEdge}
+              nodeContent={nodeContent}
+              onNodeContentChange={setNodeContent}
 
-            /*
-             * Editor nodo
-             */
+              nodeStatus={nodeStatus}
+              onNodeStatusChange={setNodeStatus}
 
-            nodeTitle={
-              nodeTitle
-            }
-            onNodeTitleChange={
-              setNodeTitle
-            }
+              nodePriority={nodePriority}
+              onNodePriorityChange={setNodePriority}
 
-            nodeContent={
-              nodeContent
-            }
-            onNodeContentChange={
-              setNodeContent
-            }
+              isUpdatingNode={isUpdatingNode}
+              onUpdateNode={updateSelectedNode}
 
-            nodeStatus={
-              nodeStatus
-            }
-            onNodeStatusChange={
-              setNodeStatus
-            }
+              edgeType={edgeType}
+              onEdgeTypeChange={setEdgeType}
 
-            nodePriority={
-              nodePriority
-            }
-            onNodePriorityChange={
-              setNodePriority
-            }
+              edgeStrength={edgeStrength}
+              onEdgeStrengthChange={setEdgeStrength}
 
-            isUpdatingNode={
-              isUpdatingNode
-            }
-            onUpdateNode={
-              updateSelectedNode
-            }
+              edgeConfidence={edgeConfidence}
+              onEdgeConfidenceChange={setEdgeConfidence}
 
-            /*
-             * Editor relación
-             */
+              edgeDescription={edgeDescription}
+              onEdgeDescriptionChange={setEdgeDescription}
 
-            edgeType={
-              edgeType
-            }
-            onEdgeTypeChange={
-              setEdgeType
-            }
+              isUpdatingEdge={isUpdatingEdge}
+              onUpdateEdge={updateSelectedEdge}
 
-            edgeStrength={
-              edgeStrength
-            }
-            onEdgeStrengthChange={
-              setEdgeStrength
-            }
+              evidenceText={evidenceText}
+              onEvidenceTextChange={setEvidenceText}
 
-            edgeConfidence={
-              edgeConfidence
-            }
-            onEdgeConfidenceChange={
-              setEdgeConfidence
-            }
+              isAddingEvidence={isAddingEvidence}
+              onAddEvidence={addEvidenceToSelectedEdge}
+            />
 
-            edgeDescription={
-              edgeDescription
-            }
-            onEdgeDescriptionChange={
-              setEdgeDescription
-            }
-
-            isUpdatingEdge={
-              isUpdatingEdge
-            }
-            onUpdateEdge={
-              updateSelectedEdge
-            }
-
-            /*
-             * Evidencia
-             */
-
-            evidenceText={
-              evidenceText
-            }
-            onEvidenceTextChange={
-              setEvidenceText
-            }
-
-            isAddingEvidence={
-              isAddingEvidence
-            }
-            onAddEvidence={
-              addEvidenceToSelectedEdge
-            }
-          />
+            <AISuggestionsPanel
+              hasSelectedNode={Boolean(selectedNode)}
+              suggestions={aiSuggestions}
+              isExpanding={isExpandingIdea}
+              errorMessage={aiErrorMessage}
+              onExpand={expandSelectedNode}
+            />
+          </div>
         )
       }
     />
