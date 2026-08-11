@@ -23,7 +23,9 @@ import { AIService } from "@/services/AIService";
 import { ApiAIProvider } from "@/services/ai/ApiAIProvider";
 
 import type {
+  AIRelationType,
   AISuggestion,
+  GraphContext,
 } from "@/types/ai";
 
 const universeService =
@@ -128,15 +130,11 @@ export function useWorkspace(
    * =========================
    */
 
-  const [
-    title,
-    setTitle,
-  ] = useState("");
+  const [title, setTitle] =
+    useState("");
 
-  const [
-    content,
-    setContent,
-  ] = useState("");
+  const [content, setContent] =
+    useState("");
 
   const [
     isCreating,
@@ -687,6 +685,7 @@ export function useWorkspace(
                 ? {
                     stroke:
                       "#ef4444",
+
                     strokeDasharray:
                       "8 6",
                   }
@@ -710,6 +709,7 @@ export function useWorkspace(
                   ? {
                       stroke:
                         "#3b82f6",
+
                       strokeDasharray:
                         "4 4",
                     }
@@ -727,7 +727,8 @@ export function useWorkspace(
                   };
 
             return {
-              id: edge.id,
+              id:
+                edge.id,
 
               source:
                 edge.source_node_id,
@@ -750,13 +751,16 @@ export function useWorkspace(
 
               style: {
                 ...relationStyle,
+
                 strokeWidth,
+
                 opacity,
               },
 
               labelStyle: {
                 fill:
                   "#d4d4d8",
+
                 fontSize:
                   12,
               },
@@ -801,6 +805,7 @@ export function useWorkspace(
             node.id ===
             selectedNodeId
         ) ?? null,
+
       [
         nodes,
         selectedNodeId,
@@ -815,9 +820,220 @@ export function useWorkspace(
             edge.id ===
             selectedEdgeId
         ) ?? null,
+
       [
         edges,
         selectedEdgeId,
+      ]
+    );
+
+  /*
+   * =========================
+   * AI-003
+   * GRAPH CONTEXT
+   * =========================
+   */
+
+  const graphContext =
+    useMemo<GraphContext | null>(
+      () => {
+        if (!selectedNode) {
+          return null;
+        }
+
+        const incomingRelations =
+          edges
+            .filter(
+              (edge) =>
+                edge.target_node_id ===
+                selectedNode.id
+            )
+            .map(
+              (edge) => ({
+                id:
+                  edge.id,
+
+                sourceNodeId:
+                  edge.source_node_id,
+
+                targetNodeId:
+                  edge.target_node_id,
+
+                type:
+                  edge.type as AIRelationType,
+
+                strength:
+                  edge.strength,
+
+                confidence:
+                  edge.confidence,
+
+                description:
+                  edge.description,
+
+                evidence:
+                  edge.evidence,
+              })
+            );
+
+        const outgoingRelations =
+          edges
+            .filter(
+              (edge) =>
+                edge.source_node_id ===
+                selectedNode.id
+            )
+            .map(
+              (edge) => ({
+                id:
+                  edge.id,
+
+                sourceNodeId:
+                  edge.source_node_id,
+
+                targetNodeId:
+                  edge.target_node_id,
+
+                type:
+                  edge.type as AIRelationType,
+
+                strength:
+                  edge.strength,
+
+                confidence:
+                  edge.confidence,
+
+                description:
+                  edge.description,
+
+                evidence:
+                  edge.evidence,
+              })
+            );
+
+        const incomingNeighbors =
+          incomingRelations.flatMap(
+            (relation) => {
+              const node =
+                nodes.find(
+                  (item) =>
+                    item.id ===
+                    relation.sourceNodeId
+                );
+
+              if (!node) {
+                return [];
+              }
+
+              return [
+                {
+                  node: {
+                    id:
+                      node.id,
+
+                    title:
+                      node.title,
+
+                    content:
+                      node.content,
+
+                    status:
+                      node.status,
+
+                    priority:
+                      node.priority,
+                  },
+
+                  relation,
+
+                  direction:
+                    "incoming" as const,
+                },
+              ];
+            }
+          );
+
+        const outgoingNeighbors =
+          outgoingRelations.flatMap(
+            (relation) => {
+              const node =
+                nodes.find(
+                  (item) =>
+                    item.id ===
+                    relation.targetNodeId
+                );
+
+              if (!node) {
+                return [];
+              }
+
+              return [
+                {
+                  node: {
+                    id:
+                      node.id,
+
+                    title:
+                      node.title,
+
+                    content:
+                      node.content,
+
+                    status:
+                      node.status,
+
+                    priority:
+                      node.priority,
+                  },
+
+                  relation,
+
+                  direction:
+                    "outgoing" as const,
+                },
+              ];
+            }
+          );
+
+        return {
+          focusNode: {
+            id:
+              selectedNode.id,
+
+            title:
+              selectedNode.title,
+
+            content:
+              selectedNode.content,
+
+            status:
+              selectedNode.status,
+
+            priority:
+              selectedNode.priority,
+          },
+
+          neighbors: [
+            ...incomingNeighbors,
+            ...outgoingNeighbors,
+          ],
+
+          incomingRelations,
+
+          outgoingRelations,
+
+          totalNodesInUniverse:
+            nodes.length,
+
+          totalEdgesInUniverse:
+            edges.length,
+        };
+      },
+
+      [
+        selectedNode,
+        nodes,
+        edges,
       ]
     );
 
@@ -912,8 +1128,13 @@ export function useWorkspace(
       node.priority
     );
 
-    setAiSuggestions([]);
-    setAiErrorMessage("");
+    setAiSuggestions(
+      []
+    );
+
+    setAiErrorMessage(
+      ""
+    );
 
     cancelEditingAISuggestion();
   }
@@ -963,13 +1184,21 @@ export function useWorkspace(
     );
 
     setEdgeDescription(
-      edge.description ?? ""
+      edge.description ??
+        ""
     );
 
-    setEvidenceText("");
+    setEvidenceText(
+      ""
+    );
 
-    setAiSuggestions([]);
-    setAiErrorMessage("");
+    setAiSuggestions(
+      []
+    );
+
+    setAiErrorMessage(
+      ""
+    );
 
     cancelEditingAISuggestion();
   }
@@ -1113,8 +1342,13 @@ export function useWorkspace(
       null
     );
 
-    setAiSuggestions([]);
-    setAiErrorMessage("");
+    setAiSuggestions(
+      []
+    );
+
+    setAiErrorMessage(
+      ""
+    );
 
     cancelEditingAISuggestion();
   }
@@ -1228,9 +1462,7 @@ export function useWorkspace(
    */
 
   async function updateSelectedEdge() {
-    if (
-      !selectedEdge
-    ) {
+    if (!selectedEdge) {
       return;
     }
 
@@ -1271,18 +1503,14 @@ export function useWorkspace(
    */
 
   async function addEvidenceToSelectedEdge() {
-    if (
-      !selectedEdge
-    ) {
+    if (!selectedEdge) {
       return;
     }
 
     const cleanEvidence =
       evidenceText.trim();
 
-    if (
-      !cleanEvidence
-    ) {
+    if (!cleanEvidence) {
       return;
     }
 
@@ -1344,9 +1572,7 @@ export function useWorkspace(
    */
 
   async function updateSelectedNode() {
-    if (
-      !selectedNode
-    ) {
+    if (!selectedNode) {
       return;
     }
 
@@ -1420,6 +1646,10 @@ export function useWorkspace(
 
           status:
             selectedNode.status,
+
+          graphContext:
+            graphContext ??
+            undefined,
         });
 
       setAiSuggestions(
@@ -1440,7 +1670,6 @@ export function useWorkspace(
 
   /*
    * =========================
-   * AI-001.1
    * ACEPTAR SUGERENCIA
    * =========================
    */
@@ -1477,9 +1706,12 @@ export function useWorkspace(
         );
 
       const newNodeIdString =
-        typeof newNodeId === "string"
+        typeof newNodeId ===
+        "string"
           ? newNodeId
-          : String(newNodeId);
+          : String(
+              newNodeId
+            );
 
       if (
         suggestion.proposedRelationType
@@ -1524,7 +1756,6 @@ export function useWorkspace(
 
   /*
    * =========================
-   * AI-001.2
    * RECHAZAR SUGERENCIA
    * =========================
    */
@@ -1551,8 +1782,7 @@ export function useWorkspace(
 
   /*
    * =========================
-   * AI-001.2
-   * EMPEZAR EDICIÓN
+   * EMPEZAR EDICIÓN IA
    * =========================
    */
 
@@ -1579,8 +1809,7 @@ export function useWorkspace(
 
   /*
    * =========================
-   * AI-001.2
-   * CANCELAR EDICIÓN
+   * CANCELAR EDICIÓN IA
    * =========================
    */
 
@@ -1604,8 +1833,7 @@ export function useWorkspace(
 
   /*
    * =========================
-   * AI-001.2
-   * GUARDAR EDICIÓN
+   * GUARDAR EDICIÓN IA
    * =========================
    */
 
@@ -1672,6 +1900,12 @@ export function useWorkspace(
     flowEdges,
 
     /*
+     * AI-003
+     */
+
+    graphContext,
+
+    /*
      * Selección
      */
 
@@ -1735,8 +1969,10 @@ export function useWorkspace(
     title,
     content,
     isCreating,
+
     setTitle,
     setContent,
+
     addIdea,
 
     /*
@@ -1788,20 +2024,19 @@ export function useWorkspace(
     addEvidenceToSelectedEdge,
 
     /*
-     * AI-001
+     * AI
      */
 
     aiSuggestions,
     isExpandingIdea,
     aiErrorMessage,
-    expandSelectedNode,
 
+    expandSelectedNode,
     acceptAISuggestion,
     rejectAISuggestion,
 
     /*
-     * AI-001.2
-     * edición
+     * Edición IA
      */
 
     editingSuggestionId,

@@ -6,6 +6,14 @@ export type AISuggestionKind =
   | "evidence"
   | "connection";
 
+export type AIRelationType =
+  | "inspira"
+  | "causa"
+  | "depende_de"
+  | "complementa"
+  | "contradice"
+  | "demuestra";
+
 export interface AISuggestion {
   id: string;
 
@@ -21,23 +29,75 @@ export interface AISuggestion {
 
   sourceNodeId: string;
 
-  proposedRelationType?:
-    | "inspira"
-    | "causa"
-    | "depende_de"
-    | "complementa"
-    | "contradice"
-    | "demuestra";
+  proposedRelationType?: AIRelationType;
 
   metadata?: Record<string, unknown>;
 }
 
-export interface ExpandIdeaInput {
-  universeId: string;
-  nodeId: string;
+export interface GraphContextNode {
+  id: string;
   title: string;
   content: string;
   status: string;
+  priority: number;
+}
+
+export interface GraphContextEvidence {
+  type: string;
+  content: string;
+  created_at: string;
+}
+
+export interface GraphContextEdge {
+  id: string;
+
+  sourceNodeId: string;
+  targetNodeId: string;
+
+  type: AIRelationType;
+
+  strength: number;
+  confidence: number;
+
+  description: string | null;
+
+  evidence: GraphContextEvidence[];
+}
+
+export interface GraphNeighbor {
+  node: GraphContextNode;
+
+  relation: GraphContextEdge;
+
+  direction:
+    | "incoming"
+    | "outgoing";
+}
+
+export interface GraphContext {
+  focusNode: GraphContextNode;
+
+  neighbors: GraphNeighbor[];
+
+  incomingRelations: GraphContextEdge[];
+
+  outgoingRelations: GraphContextEdge[];
+
+  totalNodesInUniverse: number;
+
+  totalEdgesInUniverse: number;
+}
+
+export interface ExpandIdeaInput {
+  universeId: string;
+
+  nodeId: string;
+
+  title: string;
+  content: string;
+  status: string;
+
+  graphContext?: GraphContext;
 }
 
 export interface ExpandIdeaResult {
