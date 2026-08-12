@@ -130,6 +130,12 @@ export interface GraphInsight {
   metadata?: Record<string, unknown>;
   
   action?: GraphInsightAction;
+
+  status?: GraphInsightStatus;
+
+createdAt?: string;
+
+resolvedAt?: string | null;
 }
 
 export interface AnalyzeGraphInput {
@@ -163,4 +169,16 @@ export interface GraphInsightAction {
   targetNodeId?: string;
 
   relationType?: AIRelationType;
+}
+export type GraphInsightStatus =
+  | "OPEN"
+  | "RESOLVED"
+  | "DISMISSED";
+
+export interface GraphInsightPersistence {
+  status: GraphInsightStatus;
+
+  createdAt?: string;
+
+  resolvedAt?: string | null;
 }

@@ -23,6 +23,12 @@ export default function UniversePage() {
   }>();
 
   const {
+    /*
+     * =========================
+     * WORKSPACE
+     * =========================
+     */
+
     universe,
     graph,
 
@@ -36,7 +42,9 @@ export default function UniversePage() {
     flowEdges,
 
     /*
+     * =========================
      * SELECCIÓN
+     * =========================
      */
 
     selectedNode,
@@ -46,7 +54,9 @@ export default function UniversePage() {
     selectedEdge,
 
     /*
+     * =========================
      * CREAR IDEA
+     * =========================
      */
 
     title,
@@ -59,7 +69,9 @@ export default function UniversePage() {
     addIdea,
 
     /*
+     * =========================
      * EDITOR DE NODOS
+     * =========================
      */
 
     nodeTitle,
@@ -78,7 +90,9 @@ export default function UniversePage() {
     updateSelectedNode,
 
     /*
+     * =========================
      * EDITOR DE RELACIONES
+     * =========================
      */
 
     edgeType,
@@ -97,7 +111,9 @@ export default function UniversePage() {
     updateSelectedEdge,
 
     /*
+     * =========================
      * EVIDENCIA
+     * =========================
      */
 
     evidenceText,
@@ -107,7 +123,9 @@ export default function UniversePage() {
     addEvidenceToSelectedEdge,
 
     /*
-     * KE-004
+     * =========================
+     * CONEXIÓN PENDIENTE
+     * =========================
      */
 
     pendingConnection,
@@ -130,7 +148,9 @@ export default function UniversePage() {
     cancelPendingRelation,
 
     /*
-     * KE-005
+     * =========================
+     * FILTROS DEL GRAFO
+     * =========================
      */
 
     nodeStatusFilter,
@@ -149,7 +169,9 @@ export default function UniversePage() {
     setMinimumStrength,
 
     /*
-     * AI-001 / AI-003
+     * =========================
+     * AI — EXPANSIÓN
+     * =========================
      */
 
     aiSuggestions,
@@ -161,7 +183,9 @@ export default function UniversePage() {
     rejectAISuggestion,
 
     /*
-     * AI-001.2
+     * =========================
+     * AI — EDICIÓN
+     * =========================
      */
 
     editingSuggestionId,
@@ -180,24 +204,51 @@ export default function UniversePage() {
     saveEditedAISuggestion,
 
     /*
-     * AI-004 / AI-005
+     * =========================
+     * AI-004 / AI-005 / AI-006
+     * GRAPH INTELLIGENCE
+     * =========================
      */
 
     graphInsights,
+    filteredGraphInsights,
+
     isAnalyzingGraph,
     graphAnalysisError,
+
     analyzeKnowledgeGraph,
     executeGraphInsightAction,
 
+    resolveGraphInsight,
+    dismissGraphInsight,
+
     /*
+     * =========================
+     * AI-006.5
+     * MEMORY FILTERS
+     * =========================
+     */
+
+    insightStatusFilter,
+    setInsightStatusFilter,
+
+    openInsightsCount,
+    resolvedInsightsCount,
+    dismissedInsightsCount,
+
+    /*
+     * =========================
      * GENERAL
+     * =========================
      */
 
     loading,
     errorMessage,
 
     /*
+     * =========================
      * REACT FLOW
+     * =========================
      */
 
     handleNodeDragStop,
@@ -206,6 +257,12 @@ export default function UniversePage() {
     handleConnect,
   } = useWorkspace(params.id);
 
+  /*
+   * =========================
+   * LOADING
+   * =========================
+   */
+
   if (loading) {
     return (
       <main className="min-h-screen bg-black p-10 text-white">
@@ -213,6 +270,12 @@ export default function UniversePage() {
       </main>
     );
   }
+
+  /*
+   * =========================
+   * ERROR
+   * =========================
+   */
 
   if (
     errorMessage ||
@@ -232,14 +295,32 @@ export default function UniversePage() {
     );
   }
 
+  /*
+   * =========================
+   * WORKSPACE
+   * =========================
+   */
+
   return (
     <WorkspaceLayout
+      /*
+       * =========================
+       * HEADER
+       * =========================
+       */
+
       header={
         <UniverseHeader
           title={universe.title}
           description={universe.description}
         />
       }
+
+      /*
+       * =========================
+       * EXPLORER
+       * =========================
+       */
 
       explorer={
         <div className="space-y-6">
@@ -259,12 +340,18 @@ export default function UniversePage() {
           />
 
           <GraphFiltersPanel
-            nodeStatusFilter={nodeStatusFilter}
+            nodeStatusFilter={
+              nodeStatusFilter
+            }
+
             onNodeStatusFilterChange={
               setNodeStatusFilter
             }
 
-            minimumPriority={minimumPriority}
+            minimumPriority={
+              minimumPriority
+            }
+
             onMinimumPriorityChange={
               setMinimumPriority
             }
@@ -272,6 +359,7 @@ export default function UniversePage() {
             relationTypeFilter={
               relationTypeFilter
             }
+
             onRelationTypeFilterChange={
               setRelationTypeFilter
             }
@@ -279,6 +367,7 @@ export default function UniversePage() {
             minimumConfidence={
               minimumConfidence
             }
+
             onMinimumConfidenceChange={
               setMinimumConfidence
             }
@@ -286,6 +375,7 @@ export default function UniversePage() {
             minimumStrength={
               minimumStrength
             }
+
             onMinimumStrengthChange={
               setMinimumStrength
             }
@@ -293,6 +383,7 @@ export default function UniversePage() {
             visibleNodes={
               filteredNodes.length
             }
+
             totalNodes={
               nodes.length
             }
@@ -300,14 +391,21 @@ export default function UniversePage() {
             visibleEdges={
               filteredEdges.length
             }
+
             totalEdges={
               edges.length
             }
           />
 
           <GraphInsightsPanel
-            insights={graphInsights}
-            isAnalyzing={isAnalyzingGraph}
+            insights={
+              filteredGraphInsights
+            }
+
+            isAnalyzing={
+              isAnalyzingGraph
+            }
+
             errorMessage={
               graphAnalysisError
             }
@@ -320,6 +418,26 @@ export default function UniversePage() {
               edges.length
             }
 
+            insightStatusFilter={
+              insightStatusFilter
+            }
+
+            onInsightStatusFilterChange={
+              setInsightStatusFilter
+            }
+
+            openInsightsCount={
+              openInsightsCount
+            }
+
+            resolvedInsightsCount={
+              resolvedInsightsCount
+            }
+
+            dismissedInsightsCount={
+              dismissedInsightsCount
+            }
+
             onAnalyze={
               analyzeKnowledgeGraph
             }
@@ -327,9 +445,23 @@ export default function UniversePage() {
             onExecuteInsightAction={
               executeGraphInsightAction
             }
+
+            onResolveInsight={
+              resolveGraphInsight
+            }
+
+            onDismissInsight={
+              dismissGraphInsight
+            }
           />
         </div>
       }
+
+      /*
+       * =========================
+       * GRAPH
+       * =========================
+       */
 
       graph={
         <GraphWorkspace
@@ -353,6 +485,12 @@ export default function UniversePage() {
           }
         />
       }
+
+      /*
+       * =========================
+       * INSPECTOR
+       * =========================
+       */
 
       inspector={
         pendingConnection ? (
