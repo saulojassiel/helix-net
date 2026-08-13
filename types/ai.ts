@@ -144,8 +144,11 @@ export interface AnalyzeGraphInput {
   graphContext: {
     nodes: GraphContextNode[];
     edges: GraphContextEdge[];
+  
   };
+  memory?: GraphReasoningMemory;
 }
+
 
 export interface AnalyzeGraphResult {
   insights: GraphInsight[];
@@ -181,4 +184,35 @@ export interface GraphInsightPersistence {
   createdAt?: string;
 
   resolvedAt?: string | null;
+}
+export interface GraphMemoryInsight {
+  id: string;
+
+  kind: GraphInsightKind;
+
+  title: string;
+
+  description: string;
+
+  status: GraphInsightStatus;
+
+  confidence: number;
+
+  createdAt?: string;
+
+  resolvedAt?: string | null;
+
+  relatedNodeIds: string[];
+
+  relatedEdgeIds: string[];
+}
+
+export interface GraphReasoningMemory {
+  open: GraphMemoryInsight[];
+
+  resolved: GraphMemoryInsight[];
+
+  dismissed: GraphMemoryInsight[];
+
+  totalHistoricalInsights: number;
 }

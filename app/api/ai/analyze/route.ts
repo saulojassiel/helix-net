@@ -9,7 +9,8 @@ import type {
 } from "@/types/ai";
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey:
+    process.env.OPENAI_API_KEY,
 });
 
 /*
@@ -18,7 +19,8 @@ const openai = new OpenAI({
  * =========================
  */
 
-const insightKinds: GraphInsightKind[] = [
+const insightKinds:
+  GraphInsightKind[] = [
   "knowledge_gap",
   "potential_contradiction",
   "weak_node",
@@ -26,7 +28,8 @@ const insightKinds: GraphInsightKind[] = [
   "missing_connection",
 ];
 
-const relationTypes: AIRelationType[] = [
+const relationTypes:
+  AIRelationType[] = [
   "inspira",
   "causa",
   "depende_de",
@@ -35,7 +38,8 @@ const relationTypes: AIRelationType[] = [
   "demuestra",
 ];
 
-const actionKinds: GraphInsightActionKind[] = [
+const actionKinds:
+  GraphInsightActionKind[] = [
   "select_node",
   "select_edge",
   "prepare_connection",
@@ -52,11 +56,20 @@ const actionKinds: GraphInsightActionKind[] = [
 const MAX_NODES = 40;
 const MAX_EDGES = 80;
 
-const MAX_NODE_CONTENT = 700;
-const MAX_EDGE_DESCRIPTION = 400;
+const MAX_NODE_CONTENT =
+  700;
 
-const MAX_EVIDENCE_PER_EDGE = 3;
-const MAX_EVIDENCE_CONTENT = 500;
+const MAX_EDGE_DESCRIPTION =
+  400;
+
+const MAX_EVIDENCE_PER_EDGE =
+  3;
+
+const MAX_EVIDENCE_CONTENT =
+  500;
+
+const MAX_MEMORY_PER_STATUS =
+  20;
 
 /*
  * =========================
@@ -65,14 +78,21 @@ const MAX_EVIDENCE_CONTENT = 500;
  */
 
 function limitText(
-  value: string | null | undefined,
-  maxLength: number
+  value:
+    | string
+    | null
+    | undefined,
+  maxLength:
+    number
 ) {
   if (!value) {
     return "";
   }
 
-  if (value.length <= maxLength) {
+  if (
+    value.length <=
+    maxLength
+  ) {
     return value;
   }
 
@@ -93,33 +113,50 @@ function prepareGraph(
 ) {
   const nodes =
     input.graphContext.nodes
-      .slice(0, MAX_NODES)
-      .map((node) => ({
-        id: node.id,
+      .slice(
+        0,
+        MAX_NODES
+      )
+      .map(
+        (
+          node
+        ) => ({
+          id:
+            node.id,
 
-        title: node.title,
+          title:
+            node.title,
 
-        content: limitText(
-          node.content,
-          MAX_NODE_CONTENT
-        ),
+          content:
+            limitText(
+              node.content,
+              MAX_NODE_CONTENT
+            ),
 
-        status: node.status,
+          status:
+            node.status,
 
-        priority: node.priority,
-      }));
+          priority:
+            node.priority,
+        })
+      );
 
   const visibleNodeIds =
     new Set(
       nodes.map(
-        (node) => node.id
+        (
+          node
+        ) =>
+          node.id
       )
     );
 
   const edges =
     input.graphContext.edges
       .filter(
-        (edge) =>
+        (
+          edge
+        ) =>
           visibleNodeIds.has(
             edge.sourceNodeId
           ) &&
@@ -127,63 +164,75 @@ function prepareGraph(
             edge.targetNodeId
           )
       )
-      .slice(0, MAX_EDGES)
-      .map((edge) => ({
-        id: edge.id,
+      .slice(
+        0,
+        MAX_EDGES
+      )
+      .map(
+        (
+          edge
+        ) => ({
+          id:
+            edge.id,
 
-        sourceNodeId:
-          edge.sourceNodeId,
+          sourceNodeId:
+            edge.sourceNodeId,
 
-        targetNodeId:
-          edge.targetNodeId,
+          targetNodeId:
+            edge.targetNodeId,
 
-        type:
-          edge.type,
+          type:
+            edge.type,
 
-        strength:
-          edge.strength,
+          strength:
+            edge.strength,
 
-        confidence:
-          edge.confidence,
+          confidence:
+            edge.confidence,
 
-        description:
-          limitText(
-            edge.description,
-            MAX_EDGE_DESCRIPTION
-          ),
-
-        evidence:
-          edge.evidence
-            .slice(
-              0,
-              MAX_EVIDENCE_PER_EDGE
-            )
-            .map(
-              (evidence) => ({
-                type:
-                  evidence.type,
-
-                content:
-                  limitText(
-                    evidence.content,
-                    MAX_EVIDENCE_CONTENT
-                  ),
-
-                created_at:
-                  evidence.created_at,
-              })
+          description:
+            limitText(
+              edge.description,
+              MAX_EDGE_DESCRIPTION
             ),
-      }));
+
+          evidence:
+            edge.evidence
+              .slice(
+                0,
+                MAX_EVIDENCE_PER_EDGE
+              )
+              .map(
+                (
+                  evidence
+                ) => ({
+                  type:
+                    evidence.type,
+
+                  content:
+                    limitText(
+                      evidence.content,
+                      MAX_EVIDENCE_CONTENT
+                    ),
+
+                  created_at:
+                    evidence.created_at,
+                })
+              ),
+        })
+      );
 
   return {
     universeId:
       input.universeId,
 
     totalNodes:
-      input.graphContext.nodes.length,
+      input.graphContext
+        .nodes.length,
 
     totalEdges:
-      input.graphContext.edges.length,
+      input.graphContext
+        .edges.length,
 
     analyzedNodes:
       nodes.length,
@@ -198,24 +247,190 @@ function prepareGraph(
 
 /*
  * =========================
- * TIPO DE RESPUESTA IA
+ * PREPARAR MEMORIA
+ * =========================
+ */
+
+function prepareMemory(
+  input: AnalyzeGraphInput
+) {
+  const memory =
+    input.memory ?? {
+      open: [],
+      resolved: [],
+      dismissed: [],
+      totalHistoricalInsights: 0,
+    };
+
+  return {
+    totalHistoricalInsights:
+      memory
+        .totalHistoricalInsights,
+
+    open:
+      memory.open
+        .slice(
+          0,
+          MAX_MEMORY_PER_STATUS
+        )
+        .map(
+          (
+            insight
+          ) => ({
+            id:
+              insight.id,
+
+            kind:
+              insight.kind,
+
+            title:
+              insight.title,
+
+            description:
+              limitText(
+                insight.description,
+                700
+              ),
+
+            status:
+              insight.status,
+
+            confidence:
+              insight.confidence,
+
+            createdAt:
+              insight.createdAt,
+
+            resolvedAt:
+              insight.resolvedAt,
+
+            relatedNodeIds:
+              insight.relatedNodeIds,
+
+            relatedEdgeIds:
+              insight.relatedEdgeIds,
+          })
+        ),
+
+    resolved:
+      memory.resolved
+        .slice(
+          0,
+          MAX_MEMORY_PER_STATUS
+        )
+        .map(
+          (
+            insight
+          ) => ({
+            id:
+              insight.id,
+
+            kind:
+              insight.kind,
+
+            title:
+              insight.title,
+
+            description:
+              limitText(
+                insight.description,
+                700
+              ),
+
+            status:
+              insight.status,
+
+            confidence:
+              insight.confidence,
+
+            createdAt:
+              insight.createdAt,
+
+            resolvedAt:
+              insight.resolvedAt,
+
+            relatedNodeIds:
+              insight.relatedNodeIds,
+
+            relatedEdgeIds:
+              insight.relatedEdgeIds,
+          })
+        ),
+
+    dismissed:
+      memory.dismissed
+        .slice(
+          0,
+          MAX_MEMORY_PER_STATUS
+        )
+        .map(
+          (
+            insight
+          ) => ({
+            id:
+              insight.id,
+
+            kind:
+              insight.kind,
+
+            title:
+              insight.title,
+
+            description:
+              limitText(
+                insight.description,
+                700
+              ),
+
+            status:
+              insight.status,
+
+            confidence:
+              insight.confidence,
+
+            createdAt:
+              insight.createdAt,
+
+            resolvedAt:
+              insight.resolvedAt,
+
+            relatedNodeIds:
+              insight.relatedNodeIds,
+
+            relatedEdgeIds:
+              insight.relatedEdgeIds,
+          })
+        ),
+  };
+}
+
+/*
+ * =========================
+ * TIPO RESPUESTA IA
  * =========================
  */
 
 interface RawInsight {
-  kind: GraphInsightKind;
+  kind:
+    GraphInsightKind;
 
-  title: string;
+  title:
+    string;
 
-  description: string;
+  description:
+    string;
 
-  confidence: number;
+  confidence:
+    number;
 
-  relatedNodeIds: string[];
+  relatedNodeIds:
+    string[];
 
-  relatedEdgeIds: string[];
+  relatedEdgeIds:
+    string[];
 
-  suggestedAction: string;
+  suggestedAction:
+    string;
 
   action: {
     kind:
@@ -255,7 +470,8 @@ export async function POST(
      */
 
     if (
-      !process.env.OPENAI_API_KEY
+      !process.env
+        .OPENAI_API_KEY
     ) {
       return NextResponse.json(
         {
@@ -282,10 +498,12 @@ export async function POST(
       !body.universeId ||
       !body.graphContext ||
       !Array.isArray(
-        body.graphContext.nodes
+        body.graphContext
+          .nodes
       ) ||
       !Array.isArray(
-        body.graphContext.edges
+        body.graphContext
+          .edges
       )
     ) {
       return NextResponse.json(
@@ -300,13 +518,14 @@ export async function POST(
     }
 
     /*
-     * No gastamos una llamada
-     * si no existen nodos.
+     * Sin nodos no gastamos
+     * una llamada de IA.
      */
 
     if (
-      body.graphContext.nodes
-        .length === 0
+      body.graphContext
+        .nodes.length ===
+      0
     ) {
       return NextResponse.json(
         {
@@ -321,14 +540,29 @@ export async function POST(
      * =========================
      */
 
+    const input =
+      body as AnalyzeGraphInput;
+
     const preparedGraph =
       prepareGraph(
-        body as AnalyzeGraphInput
+        input
+      );
+
+    const preparedMemory =
+      prepareMemory(
+        input
       );
 
     const graphText =
       JSON.stringify(
         preparedGraph,
+        null,
+        2
+      );
+
+    const memoryText =
+      JSON.stringify(
+        preparedMemory,
         null,
         2
       );
@@ -340,21 +574,25 @@ export async function POST(
      */
 
     const response =
-      await openai.responses.create({
-        model:
-          "gpt-5.6-terra",
+      await openai.responses.create(
+        {
+          model:
+            "gpt-5.6-terra",
 
-        reasoning: {
-          effort: "low",
-        },
+          reasoning: {
+            effort:
+              "low",
+          },
 
-        store: false,
+          store:
+            false,
 
-        input: [
-          {
-            role: "system",
+          input: [
+            {
+              role:
+                "system",
 
-            content: `
+              content: `
 Eres HELIX Graph Intelligence.
 
 Analizas un Knowledge Graph compuesto
@@ -399,7 +637,8 @@ que actualmente no existe.
 REGLAS GENERALES
 
 - Basa los insights exclusivamente en
-  el Knowledge Graph proporcionado.
+  el Knowledge Graph proporcionado y
+  en la memoria histórica recibida.
 
 - No inventes fuentes.
 
@@ -416,16 +655,78 @@ REGLAS GENERALES
 - Devuelve entre 1 y 5 insights.
 
 - relatedNodeIds solo puede contener
-  IDs existentes en el grafo.
+  IDs existentes en el grafo actual.
 
 - relatedEdgeIds solo puede contener
-  IDs existentes en el grafo.
+  IDs existentes en el grafo actual.
 
 - confidence representa la confianza
   estructural en el insight.
 
 - suggestedAction debe explicar en
   lenguaje humano qué conviene hacer.
+
+MEMORIA HISTÓRICA
+
+También recibirás memoria de análisis
+anteriores de HELIX.
+
+La memoria contiene insights con estados:
+
+OPEN:
+problemas todavía pendientes.
+
+RESOLVED:
+problemas que el usuario ya atendió.
+
+DISMISSED:
+problemas o sugerencias que el usuario
+decidió descartar.
+
+REGLAS DE MEMORIA
+
+- No generes un insight nuevo que sea
+  esencialmente equivalente a uno OPEN.
+
+- Un insight OPEN ya forma parte del
+  conocimiento pendiente de HELIX.
+
+- No vuelvas a presentar un insight
+  DISMISSED como nuevo salvo que exista
+  evidencia materialmente nueva en el
+  Knowledge Graph actual.
+
+- No presentes un insight RESOLVED como
+  nuevo.
+
+- Si un problema RESOLVED parece haber
+  reaparecido debido al estado actual
+  del grafo, puedes detectarlo.
+
+- Cuando un problema RESOLVED reaparezca,
+  el título y la descripción deben dejar
+  claro que se trata de una REAPARICIÓN
+  o RECURRENCIA.
+
+- Prioriza problemas genuinamente nuevos.
+
+- Usa la memoria como contexto histórico,
+  no como fuente absoluta de verdad.
+
+- Si la memoria histórica contradice de
+  forma clara el estado actual del grafo,
+  prioriza el estado actual.
+
+- Si reconsideras un problema previamente
+  DISMISSED, debe existir una diferencia
+  estructural o evidencia nueva concreta.
+
+- No inventes IDs que aparezcan en la
+  memoria.
+
+- Para relatedNodeIds, relatedEdgeIds y
+  action usa únicamente IDs que existan
+  actualmente en el grafo.
 
 ACCIONES EJECUTABLES
 
@@ -496,213 +797,247 @@ Nunca inventes identificadores.
 RELACIONES PERMITIDAS
 
 ${relationTypes.join(", ")}
-            `.trim(),
-          },
+              `.trim(),
+            },
 
-          {
-            role: "user",
+            {
+              role:
+                "user",
 
-            content: `
-Analiza el siguiente Knowledge Graph:
+              content: `
+Analiza el siguiente Knowledge Graph actual:
 
 ${graphText}
 
-Detecta los insights estructurales más
-útiles y proporciona para cada uno una
-acción ejecutable compatible con HELIX.
-            `.trim(),
-          },
-        ],
+MEMORIA HISTÓRICA DE HELIX:
 
-        /*
-         * =========================
-         * STRUCTURED OUTPUT
-         * =========================
-         */
+${memoryText}
 
-        text: {
-          format: {
-            type:
-              "json_schema",
+Detecta únicamente los insights
+estructurales más útiles teniendo en
+cuenta tanto el estado actual del grafo
+como lo que HELIX ya descubrió,
+resolvió o descartó anteriormente.
 
-            name:
-              "helix_graph_analysis_actions",
+Busca especialmente:
 
-            strict: true,
+- problemas realmente nuevos,
+- cambios estructurales importantes,
+- problemas resueltos que hayan
+  reaparecido,
+- contradicciones nuevas,
+- conexiones faltantes no conocidas,
+- huecos de conocimiento todavía no
+  registrados.
 
-            schema: {
-              type: "object",
+No repitas como descubrimiento nuevo
+algo que la memoria ya identifica como
+OPEN, RESOLVED o DISMISSED salvo que el
+estado actual del grafo justifique
+claramente reconsiderarlo.
 
-              properties: {
-                insights: {
-                  type: "array",
+Proporciona para cada insight una acción
+ejecutable compatible con HELIX.
+              `.trim(),
+            },
+          ],
 
-                  minItems: 1,
-                  maxItems: 5,
+          /*
+           * =========================
+           * STRUCTURED OUTPUT
+           * =========================
+           */
 
-                  items: {
-                    type: "object",
+          text: {
+            format: {
+              type:
+                "json_schema",
 
-                    properties: {
-                      kind: {
-                        type:
-                          "string",
+              name:
+                "helix_memory_aware_graph_analysis",
 
-                        enum:
-                          insightKinds,
-                      },
+              strict:
+                true,
 
-                      title: {
-                        type:
-                          "string",
+              schema: {
+                type:
+                  "object",
 
-                        minLength: 1,
-                      },
+                properties: {
+                  insights: {
+                    type:
+                      "array",
 
-                      description: {
-                        type:
-                          "string",
+                    minItems:
+                      1,
 
-                        minLength: 1,
-                      },
+                    maxItems:
+                      5,
 
-                      confidence: {
-                        type:
-                          "number",
+                    items: {
+                      type:
+                        "object",
 
-                        minimum: 0,
-                        maximum: 1,
-                      },
-
-                      relatedNodeIds: {
-                        type:
-                          "array",
-
-                        items: {
+                      properties: {
+                        kind: {
                           type:
                             "string",
+
+                          enum:
+                            insightKinds,
                         },
-                      },
 
-                      relatedEdgeIds: {
-                        type:
-                          "array",
-
-                        items: {
+                        title: {
                           type:
                             "string",
+
+                          minLength:
+                            1,
                         },
-                      },
 
-                      suggestedAction: {
-                        type:
-                          "string",
+                        description: {
+                          type:
+                            "string",
 
-                        minLength: 1,
-                      },
+                          minLength:
+                            1,
+                        },
 
-                      /*
-                       * =================
-                       * AI-005
-                       * ACTION
-                       * =================
-                       */
+                        confidence: {
+                          type:
+                            "number",
 
-                      action: {
-                        type:
-                          "object",
+                          minimum:
+                            0,
 
-                        properties: {
-                          kind: {
+                          maximum:
+                            1,
+                        },
+
+                        relatedNodeIds: {
+                          type:
+                            "array",
+
+                          items: {
                             type:
                               "string",
-
-                            enum:
-                              actionKinds,
-                          },
-
-                          nodeId: {
-                            type: [
-                              "string",
-                              "null",
-                            ],
-                          },
-
-                          edgeId: {
-                            type: [
-                              "string",
-                              "null",
-                            ],
-                          },
-
-                          sourceNodeId: {
-                            type: [
-                              "string",
-                              "null",
-                            ],
-                          },
-
-                          targetNodeId: {
-                            type: [
-                              "string",
-                              "null",
-                            ],
-                          },
-
-                          relationType: {
-                            type: [
-                              "string",
-                              "null",
-                            ],
-
-                            enum: [
-                              ...relationTypes,
-                              null,
-                            ],
                           },
                         },
 
-                        required: [
-                          "kind",
-                          "nodeId",
-                          "edgeId",
-                          "sourceNodeId",
-                          "targetNodeId",
-                          "relationType",
-                        ],
+                        relatedEdgeIds: {
+                          type:
+                            "array",
 
-                        additionalProperties:
-                          false,
+                          items: {
+                            type:
+                              "string",
+                          },
+                        },
+
+                        suggestedAction: {
+                          type:
+                            "string",
+
+                          minLength:
+                            1,
+                        },
+
+                        action: {
+                          type:
+                            "object",
+
+                          properties: {
+                            kind: {
+                              type:
+                                "string",
+
+                              enum:
+                                actionKinds,
+                            },
+
+                            nodeId: {
+                              type: [
+                                "string",
+                                "null",
+                              ],
+                            },
+
+                            edgeId: {
+                              type: [
+                                "string",
+                                "null",
+                              ],
+                            },
+
+                            sourceNodeId: {
+                              type: [
+                                "string",
+                                "null",
+                              ],
+                            },
+
+                            targetNodeId: {
+                              type: [
+                                "string",
+                                "null",
+                              ],
+                            },
+
+                            relationType: {
+                              type: [
+                                "string",
+                                "null",
+                              ],
+
+                              enum: [
+                                ...relationTypes,
+                                null,
+                              ],
+                            },
+                          },
+
+                          required: [
+                            "kind",
+                            "nodeId",
+                            "edgeId",
+                            "sourceNodeId",
+                            "targetNodeId",
+                            "relationType",
+                          ],
+
+                          additionalProperties:
+                            false,
+                        },
                       },
+
+                      required: [
+                        "kind",
+                        "title",
+                        "description",
+                        "confidence",
+                        "relatedNodeIds",
+                        "relatedEdgeIds",
+                        "suggestedAction",
+                        "action",
+                      ],
+
+                      additionalProperties:
+                        false,
                     },
-
-                    required: [
-                      "kind",
-                      "title",
-                      "description",
-                      "confidence",
-                      "relatedNodeIds",
-                      "relatedEdgeIds",
-                      "suggestedAction",
-                      "action",
-                    ],
-
-                    additionalProperties:
-                      false,
                   },
                 },
+
+                required: [
+                  "insights",
+                ],
+
+                additionalProperties:
+                  false,
               },
-
-              required: [
-                "insights",
-              ],
-
-              additionalProperties:
-                false,
             },
           },
-        },
-      });
+        }
+      );
 
     /*
      * =========================
@@ -741,7 +1076,9 @@ acción ejecutable compatible con HELIX.
     const validNodeIds =
       new Set(
         preparedGraph.nodes.map(
-          (node) =>
+          (
+            node
+          ) =>
             node.id
         )
       );
@@ -749,7 +1086,9 @@ acción ejecutable compatible con HELIX.
     const validEdgeIds =
       new Set(
         preparedGraph.edges.map(
-          (edge) =>
+          (
+            edge
+          ) =>
             edge.id
         )
       );
@@ -761,7 +1100,8 @@ acción ejecutable compatible con HELIX.
      */
 
     function sanitizeAction(
-      insight: RawInsight
+      insight:
+        RawInsight
     ) {
       const action =
         insight.action;
@@ -805,11 +1145,6 @@ acción ejecutable compatible con HELIX.
         )
           ? action.relationType
           : undefined;
-
-      /*
-       * Validación específica
-       * por tipo de acción.
-       */
 
       switch (
         action.kind
@@ -875,11 +1210,6 @@ acción ejecutable compatible con HELIX.
         }
 
         case "review_contradiction": {
-          /*
-           * Preferimos edge
-           * cuando exista.
-           */
-
           if (edgeId) {
             return {
               kind:
@@ -914,7 +1244,9 @@ acción ejecutable compatible con HELIX.
 
     const insights =
       parsed.insights.map(
-        (insight) => ({
+        (
+          insight
+        ) => ({
           id:
             crypto.randomUUID(),
 
@@ -930,14 +1262,11 @@ acción ejecutable compatible con HELIX.
           confidence:
             insight.confidence,
 
-          /*
-           * Eliminamos IDs
-           * inventados.
-           */
-
           relatedNodeIds:
             insight.relatedNodeIds.filter(
-              (id) =>
+              (
+                id
+              ) =>
                 validNodeIds.has(
                   id
                 )
@@ -945,7 +1274,9 @@ acción ejecutable compatible con HELIX.
 
           relatedEdgeIds:
             insight.relatedEdgeIds.filter(
-              (id) =>
+              (
+                id
+              ) =>
                 validEdgeIds.has(
                   id
                 )
@@ -953,10 +1284,6 @@ acción ejecutable compatible con HELIX.
 
           suggestedAction:
             insight.suggestedAction,
-
-          /*
-           * Acción ya validada.
-           */
 
           action:
             sanitizeAction(
@@ -974,13 +1301,40 @@ acción ejecutable compatible con HELIX.
               new Date().toISOString(),
 
             analyzedNodes:
-              preparedGraph.analyzedNodes,
+              preparedGraph
+                .analyzedNodes,
 
             analyzedEdges:
-              preparedGraph.analyzedEdges,
+              preparedGraph
+                .analyzedEdges,
 
             actionsEnabled:
               true,
+
+            /*
+             * AI-007
+             */
+
+            memoryAware:
+              true,
+
+            historicalInsights:
+              preparedMemory
+                .totalHistoricalInsights,
+
+            memorySnapshot: {
+              open:
+                preparedMemory
+                  .open.length,
+
+              resolved:
+                preparedMemory
+                  .resolved.length,
+
+              dismissed:
+                preparedMemory
+                  .dismissed.length,
+            },
           },
         })
       );
@@ -991,9 +1345,32 @@ acción ejecutable compatible con HELIX.
      * =========================
      */
 
-    return NextResponse.json({
-      insights,
-    });
+    return NextResponse.json(
+      {
+        insights,
+
+        memory: {
+          used:
+            true,
+
+          totalHistoricalInsights:
+            preparedMemory
+              .totalHistoricalInsights,
+
+          open:
+            preparedMemory
+              .open.length,
+
+          resolved:
+            preparedMemory
+              .resolved.length,
+
+          dismissed:
+            preparedMemory
+              .dismissed.length,
+        },
+      }
+    );
   } catch (error) {
     console.error(
       "HELIX GRAPH AI ERROR:",

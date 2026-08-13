@@ -28,6 +28,7 @@ import type {
   GraphContext,
   GraphInsight,
   GraphInsightStatus,
+  GraphReasoningMemory,
 } from "@/types/ai";
 
 const universeService =
@@ -149,7 +150,7 @@ function createInsightFingerprint(
 /*
  * =========================
  * AI-006.6
- * TEXTO SEMÁNTICO CANÓNICO
+ * TEXTO SEMÁNTICO
  * =========================
  */
 
@@ -194,6 +195,130 @@ function createInsightSemanticText(
       "none"
     }`,
   ].join("\n");
+}
+
+/*
+ * =========================
+ * AI-006.6
+ * CREATE EMBEDDING
+ * =========================
+ */
+
+async function createEmbedding(
+  text: string
+): Promise<number[]> {
+  const response =
+    await fetch(
+      "/api/ai/embed",
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+
+        body:
+          JSON.stringify({
+            text,
+          }),
+      }
+    );
+
+  if (!response.ok) {
+    let message =
+      "No se pudo generar el embedding.";
+
+    try {
+      const data =
+        await response.json();
+
+      if (
+        typeof data?.error ===
+        "string"
+      ) {
+        message =
+          data.error;
+      }
+    } catch {
+      // Conservamos el mensaje genérico.
+    }
+
+    throw new Error(
+      message
+    );
+  }
+
+  const data =
+    await response.json();
+
+  if (
+    !Array.isArray(
+      data.embedding
+    ) ||
+    data.embedding.length !==
+      1536
+  ) {
+    throw new Error(
+      "HELIX recibió un embedding inválido."
+    );
+  }
+
+  return data.embedding as number[];
+}
+
+/*
+ * =========================
+ * AI-006.6
+ * MATCH SEMÁNTICO
+ * =========================
+ */
+
+interface SemanticMatch {
+  id: string;
+  kind: string;
+  title: string;
+  description: string;
+  confidence: number;
+  status: string;
+  fingerprint: string;
+  similarity: number;
+}
+
+async function findSemanticMatches(
+  universeId: string,
+  embedding: number[]
+): Promise<SemanticMatch[]> {
+  const {
+    data,
+    error,
+  } =
+    await supabase.rpc(
+      "match_graph_insights",
+      {
+        p_universe_id:
+          universeId,
+
+        p_query_embedding:
+          embedding,
+
+        p_match_threshold:
+          0.9,
+
+        p_match_count:
+          5,
+      }
+    );
+
+  if (error) {
+    throw new Error(
+      error.message
+    );
+  }
+
+  return (
+    data ?? []
+  ) as SemanticMatch[];
 }
 
 export function useWorkspace(
@@ -631,9 +756,7 @@ export function useWorkspace(
             .from(
               "graphs"
             )
-            .select(
-              "id"
-            )
+            .select("id")
             .eq(
               "universe_id",
               universeId
@@ -678,9 +801,7 @@ export function useWorkspace(
               }
             );
 
-        if (
-          nodeError
-        ) {
+        if (nodeError) {
           setErrorMessage(
             nodeError.message
           );
@@ -707,9 +828,7 @@ export function useWorkspace(
               universeId
             );
 
-        if (
-          edgeError
-        ) {
+        if (edgeError) {
           setErrorMessage(
             edgeError.message
           );
@@ -743,9 +862,7 @@ export function useWorkspace(
               }
             );
 
-        if (
-          insightError
-        ) {
+        if (insightError) {
           setErrorMessage(
             insightError.message
           );
@@ -884,17 +1001,15 @@ export function useWorkspace(
           (
             node
           ) => {
-            const
-              statusMatches =
-                nodeStatusFilter ===
-                  "ALL" ||
-                node.status ===
-                  nodeStatusFilter;
+            const statusMatches =
+              nodeStatusFilter ===
+                "ALL" ||
+              node.status ===
+                nodeStatusFilter;
 
-            const
-              priorityMatches =
-                node.priority >=
-                minimumPriority;
+            const priorityMatches =
+              node.priority >=
+              minimumPriority;
 
             return (
               statusMatches &&
@@ -938,31 +1053,27 @@ export function useWorkspace(
           (
             edge
           ) => {
-            const
-              typeMatches =
-                relationTypeFilter ===
-                  "ALL" ||
-                edge.type ===
-                  relationTypeFilter;
+            const typeMatches =
+              relationTypeFilter ===
+                "ALL" ||
+              edge.type ===
+                relationTypeFilter;
 
-            const
-              confidenceMatches =
-                edge.confidence >=
-                minimumConfidence;
+            const confidenceMatches =
+              edge.confidence >=
+              minimumConfidence;
 
-            const
-              strengthMatches =
-                edge.strength >=
-                minimumStrength;
+            const strengthMatches =
+              edge.strength >=
+              minimumStrength;
 
-            const
-              nodesVisible =
-                visibleNodeIds.has(
-                  edge.source_node_id
-                ) &&
-                visibleNodeIds.has(
-                  edge.target_node_id
-                );
+            const nodesVisible =
+              visibleNodeIds.has(
+                edge.source_node_id
+              ) &&
+              visibleNodeIds.has(
+                edge.target_node_id
+              );
 
             return (
               typeMatches &&
@@ -1017,6 +1128,12 @@ export function useWorkspace(
       ]
     );
 
+  /*
+   * =========================
+   * MEMORY COUNTERS
+   * =========================
+   */
+
   const openInsightsCount =
     useMemo(
       () =>
@@ -1060,6 +1177,116 @@ export function useWorkspace(
             insight.status ===
             "DISMISSED"
         ).length,
+      [
+        graphInsights,
+      ]
+    );
+
+  /*
+   * =========================
+   * AI-007
+   * REASONING MEMORY
+   * =========================
+   */
+
+  const reasoningMemory =
+    useMemo<GraphReasoningMemory>(
+      () => {
+        const toMemoryInsight = (
+          insight: GraphInsight
+        ) => ({
+          id:
+            insight.id,
+
+          kind:
+            insight.kind,
+
+          title:
+            insight.title,
+
+          description:
+            insight.description,
+
+          status:
+            insight.status ??
+            "OPEN",
+
+          confidence:
+            insight.confidence,
+
+          createdAt:
+            insight.createdAt,
+
+          resolvedAt:
+            insight.resolvedAt ??
+            null,
+
+          relatedNodeIds:
+            insight.relatedNodeIds,
+
+          relatedEdgeIds:
+            insight.relatedEdgeIds,
+        });
+
+        return {
+          open:
+            graphInsights
+              .filter(
+                (
+                  insight
+                ) =>
+                  (
+                    insight.status ??
+                    "OPEN"
+                  ) ===
+                  "OPEN"
+              )
+              .slice(
+                0,
+                20
+              )
+              .map(
+                toMemoryInsight
+              ),
+
+          resolved:
+            graphInsights
+              .filter(
+                (
+                  insight
+                ) =>
+                  insight.status ===
+                  "RESOLVED"
+              )
+              .slice(
+                0,
+                20
+              )
+              .map(
+                toMemoryInsight
+              ),
+
+          dismissed:
+            graphInsights
+              .filter(
+                (
+                  insight
+                ) =>
+                  insight.status ===
+                  "DISMISSED"
+              )
+              .slice(
+                0,
+                20
+              )
+              .map(
+                toMemoryInsight
+              ),
+
+          totalHistoricalInsights:
+            graphInsights.length,
+        };
+      },
       [
         graphInsights,
       ]
@@ -1327,9 +1554,7 @@ export function useWorkspace(
   const graphContext =
     useMemo<GraphContext | null>(
       () => {
-        if (
-          !selectedNode
-        ) {
+        if (!selectedNode) {
           return null;
         }
 
@@ -1425,9 +1650,7 @@ export function useWorkspace(
                     relation.sourceNodeId
                 );
 
-              if (
-                !node
-              ) {
+              if (!node) {
                 return [];
               }
 
@@ -1473,9 +1696,7 @@ export function useWorkspace(
                     relation.targetNodeId
                 );
 
-              if (
-                !node
-              ) {
+              if (!node) {
                 return [];
               }
 
@@ -1578,9 +1799,7 @@ export function useWorkspace(
       setContent("");
 
       await loadWorkspace();
-    } catch (
-      error
-    ) {
+    } catch (error) {
       alert(
         error instanceof Error
           ? error.message
@@ -1611,9 +1830,7 @@ export function useWorkspace(
           nodeId
       );
 
-    if (
-      !node
-    ) {
+    if (!node) {
       return;
     }
 
@@ -1674,9 +1891,7 @@ export function useWorkspace(
           edgeId
       );
 
-    if (
-      !edge
-    ) {
+    if (!edge) {
       return;
     }
 
@@ -1819,9 +2034,7 @@ export function useWorkspace(
             target
       );
 
-    if (
-      alreadyExists
-    ) {
+    if (alreadyExists) {
       alert(
         "Ya existe una conexión entre estas ideas."
       );
@@ -1875,9 +2088,7 @@ export function useWorkspace(
    */
 
   async function createPendingRelation() {
-    if (
-      !pendingConnection
-    ) {
+    if (!pendingConnection) {
       return;
     }
 
@@ -1931,9 +2142,7 @@ export function useWorkspace(
       );
 
       await loadWorkspace();
-    } catch (
-      error
-    ) {
+    } catch (error) {
       alert(
         error instanceof Error
           ? error.message
@@ -1975,9 +2184,7 @@ export function useWorkspace(
    */
 
   async function updateSelectedEdge() {
-    if (
-      !selectedEdge
-    ) {
+    if (!selectedEdge) {
       return;
     }
 
@@ -1998,9 +2205,7 @@ export function useWorkspace(
       );
 
       await loadWorkspace();
-    } catch (
-      error
-    ) {
+    } catch (error) {
       alert(
         error instanceof Error
           ? error.message
@@ -2020,18 +2225,14 @@ export function useWorkspace(
    */
 
   async function addEvidenceToSelectedEdge() {
-    if (
-      !selectedEdge
-    ) {
+    if (!selectedEdge) {
       return;
     }
 
     const cleanEvidence =
       evidenceText.trim();
 
-    if (
-      !cleanEvidence
-    ) {
+    if (!cleanEvidence) {
       return;
     }
 
@@ -2073,9 +2274,7 @@ export function useWorkspace(
       );
 
       await loadWorkspace();
-    } catch (
-      error
-    ) {
+    } catch (error) {
       alert(
         error instanceof Error
           ? error.message
@@ -2095,9 +2294,7 @@ export function useWorkspace(
    */
 
   async function updateSelectedNode() {
-    if (
-      !selectedNode
-    ) {
+    if (!selectedNode) {
       return;
     }
 
@@ -2116,9 +2313,7 @@ export function useWorkspace(
       );
 
       await loadWorkspace();
-    } catch (
-      error
-    ) {
+    } catch (error) {
       alert(
         error instanceof Error
           ? error.message
@@ -2138,9 +2333,7 @@ export function useWorkspace(
    */
 
   async function expandSelectedNode() {
-    if (
-      !selectedNode
-    ) {
+    if (!selectedNode) {
       return;
     }
 
@@ -2185,9 +2378,7 @@ export function useWorkspace(
       setAiSuggestions(
         suggestions
       );
-    } catch (
-      error
-    ) {
+    } catch (error) {
       setAiErrorMessage(
         error instanceof Error
           ? error.message
@@ -2202,8 +2393,8 @@ export function useWorkspace(
 
   /*
    * =========================
-   * ANALIZAR GRAFO
-   * + ANTI-DUPLICADOS
+   * AI-007
+   * ANALIZAR CON MEMORIA
    * =========================
    */
 
@@ -2276,7 +2467,23 @@ export function useWorkspace(
                 })
               ),
           },
+
+          /*
+           * =========================
+           * AI-007
+           * MEMORIA HISTÓRICA
+           * =========================
+           */
+
+          memory:
+            reasoningMemory,
         };
+
+      /*
+       * =========================
+       * GRAPH INTELLIGENCE
+       * =========================
+       */
 
       const insights =
         await aiService.analyzeGraph(
@@ -2285,7 +2492,8 @@ export function useWorkspace(
 
       /*
        * =========================
-       * FINGERPRINTS EXISTENTES
+       * CAPA 1
+       * FINGERPRINT EXACTO
        * =========================
        */
 
@@ -2300,12 +2508,6 @@ export function useWorkspace(
               )
           )
         );
-
-      /*
-       * =========================
-       * FILTRAR DUPLICADOS
-       * =========================
-       */
 
       const uniqueInsights =
         insights.filter(
@@ -2325,84 +2527,180 @@ export function useWorkspace(
 
       /*
        * =========================
-       * PREPARAR INSERT
+       * CAPA 2
+       * MEMORIA SEMÁNTICA
        * =========================
        */
 
-      const rows =
-        uniqueInsights.map(
-          (
-            insight
-          ) => {
-            const fingerprint =
-              createInsightFingerprint(
-                insight
-              );
+      const semanticResults =
+        await Promise.all(
+          uniqueInsights.map(
+            async (
+              insight
+            ) => {
+              const fingerprint =
+                createInsightFingerprint(
+                  insight
+                );
 
-            /*
-             * AI-006.6
-             * Ya preparamos el texto
-             * semántico, aunque todavía
-             * no generamos embeddings.
-             */
+              const semanticText =
+                createInsightSemanticText(
+                  insight
+                );
 
-            const semanticText =
-              createInsightSemanticText(
-                insight
-              );
+              const embedding =
+                await createEmbedding(
+                  semanticText
+                );
 
-            return {
-              universe_id:
-                universeId,
+              const matches =
+                await findSemanticMatches(
+                  universeId,
+                  embedding
+                );
 
-              kind:
-                insight.kind,
+              const bestMatch =
+                matches[0] ??
+                null;
 
-              title:
-                insight.title,
+              const isSemanticDuplicate =
+                Boolean(
+                  bestMatch &&
+                  bestMatch.similarity >=
+                    0.9
+                );
 
-              description:
-                insight.description,
+              if (
+                isSemanticDuplicate
+              ) {
+                console.info(
+                  "HELIX MEMORY: insight semánticamente conocido.",
+                  {
+                    newInsight:
+                      insight.title,
 
-              confidence:
-                insight.confidence,
+                    existingInsight:
+                      bestMatch?.title,
 
-              related_node_ids:
-                insight.relatedNodeIds,
+                    similarity:
+                      bestMatch?.similarity,
 
-              related_edge_ids:
-                insight.relatedEdgeIds,
+                    status:
+                      bestMatch?.status,
+                  }
+                );
 
-              suggested_action:
-                insight.suggestedAction ??
-                null,
+                return null;
+              }
 
-              action:
-                insight.action ??
-                null,
+              return {
+                universe_id:
+                  universeId,
 
-              fingerprint,
+                kind:
+                  insight.kind,
 
-              metadata: {
-                ...(
-                  insight.metadata ??
-                  {}
-                ),
+                title:
+                  insight.title,
+
+                description:
+                  insight.description,
+
+                confidence:
+                  insight.confidence,
+
+                related_node_ids:
+                  insight.relatedNodeIds,
+
+                related_edge_ids:
+                  insight.relatedEdgeIds,
+
+                suggested_action:
+                  insight.suggestedAction ??
+                  null,
+
+                action:
+                  insight.action ??
+                  null,
 
                 fingerprint,
 
-                semanticText,
-              },
+                embedding,
 
-              status:
-                "OPEN",
-            };
-          }
+                metadata: {
+                  ...(
+                    insight.metadata ??
+                    {}
+                  ),
+
+                  fingerprint,
+
+                  semanticText,
+
+                  embeddingModel:
+                    "text-embedding-3-small",
+
+                  embeddingDimensions:
+                    1536,
+
+                  semanticDeduplication:
+                    true,
+
+                  similarityThreshold:
+                    0.9,
+
+                  reasoningMemory: {
+                    historicalInsights:
+                      reasoningMemory
+                        .totalHistoricalInsights,
+
+                    open:
+                      reasoningMemory
+                        .open.length,
+
+                    resolved:
+                      reasoningMemory
+                        .resolved.length,
+
+                    dismissed:
+                      reasoningMemory
+                        .dismissed.length,
+                  },
+
+                  closestMatch:
+                    bestMatch
+                      ? {
+                          id:
+                            bestMatch.id,
+
+                          similarity:
+                            bestMatch.similarity,
+
+                          status:
+                            bestMatch.status,
+                        }
+                      : null,
+                },
+
+                status:
+                  "OPEN",
+              };
+            }
+          )
+        );
+
+      const rows =
+        semanticResults.filter(
+          (
+            row
+          ) =>
+            row !== null
         );
 
       /*
        * =========================
-       * INSERTAR SOLO NUEVOS
+       * CAPA 3
+       * POSTGRES UNIQUE
        * =========================
        */
 
@@ -2442,9 +2740,7 @@ export function useWorkspace(
       setInsightStatusFilter(
         "OPEN"
       );
-    } catch (
-      error
-    ) {
+    } catch (error) {
       setGraphAnalysisError(
         error instanceof Error
           ? error.message
@@ -2467,9 +2763,7 @@ export function useWorkspace(
     suggestion:
       AISuggestion
   ) {
-    if (
-      !graph
-    ) {
+    if (!graph) {
       return;
     }
 
@@ -2482,9 +2776,7 @@ export function useWorkspace(
           suggestion.sourceNodeId
       );
 
-    if (
-      !sourceNode
-    ) {
+    if (!sourceNode) {
       alert(
         "No se encontró el nodo origen de la sugerencia."
       );
@@ -2545,9 +2837,7 @@ export function useWorkspace(
       }
 
       await loadWorkspace();
-    } catch (
-      error
-    ) {
+    } catch (error) {
       alert(
         error instanceof Error
           ? error.message
@@ -2634,9 +2924,7 @@ export function useWorkspace(
   }
 
   function saveEditedAISuggestion() {
-    if (
-      !editingSuggestionId
-    ) {
+    if (!editingSuggestionId) {
       return;
     }
 
@@ -2646,9 +2934,7 @@ export function useWorkspace(
     const cleanContent =
       editingSuggestionContent.trim();
 
-    if (
-      !cleanTitle
-    ) {
+    if (!cleanTitle) {
       return;
     }
 
@@ -2695,9 +2981,7 @@ export function useWorkspace(
     const action =
       insight.action;
 
-    if (
-      !action
-    ) {
+    if (!action) {
       alert(
         "Este insight no contiene una acción ejecutable."
       );
@@ -2763,9 +3047,7 @@ export function useWorkspace(
                 target
           );
 
-        if (
-          alreadyExists
-        ) {
+        if (alreadyExists) {
           alert(
             "Ya existe una conexión entre estos nodos."
           );
@@ -2773,18 +3055,16 @@ export function useWorkspace(
           return;
         }
 
-        setPendingConnection(
-          {
-            source,
-            target,
+        setPendingConnection({
+          source,
+          target,
 
-            sourceHandle:
-              null,
+          sourceHandle:
+            null,
 
-            targetHandle:
-              null,
-          }
-        );
+          targetHandle:
+            null,
+        });
 
         setPendingRelationType(
           action.relationType ??
@@ -2892,9 +3172,7 @@ export function useWorkspace(
             universeId
           );
 
-      if (
-        error
-      ) {
+      if (error) {
         throw new Error(
           error.message
         );
@@ -2921,9 +3199,7 @@ export function useWorkspace(
                 : insight
           )
       );
-    } catch (
-      error
-    ) {
+    } catch (error) {
       alert(
         error instanceof Error
           ? error.message
@@ -2966,9 +3242,7 @@ export function useWorkspace(
             universeId
           );
 
-      if (
-        error
-      ) {
+      if (error) {
         throw new Error(
           error.message
         );
@@ -2996,9 +3270,7 @@ export function useWorkspace(
                 : insight
           )
       );
-    } catch (
-      error
-    ) {
+    } catch (error) {
       alert(
         error instanceof Error
           ? error.message
@@ -3027,6 +3299,12 @@ export function useWorkspace(
     flowEdges,
 
     graphContext,
+
+    /*
+     * AI-007
+     */
+
+    reasoningMemory,
 
     /*
      * GRAPH INTELLIGENCE
